@@ -1,0 +1,83 @@
+
+;; # SCHEMA!
+
+;; This is wildy incomplete still, and subject to change, but it's something to start looking at with respect
+;; to what I have in mind.
+
+;; I think for now we'll be using conformity (https://github.com/rkneufeld/conformity) to define "norms" about
+;; what we expect to see in the shape of the database.
+;; I have a feeling we're going to want to extend this with additional functionality, like :before and :after
+;; hooks, :dependencies, etc.
+;; It would also be nice to have it spit out the current state of the schema as a new :base-schema for
+;; cleanup.
+;; It would also be nice to automatically do diffs on the current schema and the existing schema, and try to
+;; automatically patch things as well.
+
+{:catalysis/base-schema
+ {:txes
+  [[;; ## Top level, generic, polymorphic attributes
+    {:db/id          #db/id[:db.part/db]
+     :db/ident       :e/name
+     :db/valueType   :db.type/string
+     :db/cardinality :db.cardinality/one
+     :db/doc         "A name; polymorphic; could relate to anything"
+     :db.install/_attribute :db.part/db}
+ 
+    {:db/id          #db/id[:db.part/db]
+     :db/ident       :e/description
+     :db/valueType   :db.type/string
+     :db/cardinality :db.cardinality/one
+     :db/doc         "A generic, polymorhpic description attribute"
+     :db.install/_attribute :db.part/db}
+ 
+    ;;; May make this an enum ref for efficiency, but for now, stick with keywords for flexibility
+    {:db/id          #db/id[:db.part/db]
+     :db/ident       :e/type
+     :db/valueType   :db.type/keyword
+     :db/cardinality :db.cardinality/one
+     :db/doc         "Specifies the type of a given entity"
+     :db.install/_attribute :db.part/db}
+ 
+    {:db/id          #db/id[:db.part/db]
+     :db/ident       :e/tags
+     :db/valueType   :db.type/ref
+     :db/cardinality :db.cardinality/many
+     :db/doc         "The user defined tags associated with an entity."
+     :db.install/_attribute :db.part/db}
+ 
+    {:db/id          #db/id[:db.part/db]
+     :db/ident       :e/category
+     :db/valueType   :db.type/ref
+     :db/cardinality :db.cardinality/one
+     :db/doc         "The user defined category of an item."
+     :db.install/_attribute :db.part/db}
+ 
+    {:db/id          #db/id[:db.part/db]
+     :db/ident       :e/isa
+     :db/valueType   :db.type/ref
+     :db/cardinality :db.cardinality/many
+     :db/doc         "Reference indiciating that one entity is a special case of another."
+     :db.install/_attribute :db.part/db}]
+
+   ;; ## Domain model
+
+   ;; These are the domain types we'll be building around
+
+   [{:db/id #db/id[:db.part/db]
+     :db/ident :e.type/Todo}
+    {:db/id #db/id[:db.part/db]
+     :db/ident :e.type/Category}
+    {:db/id #db/id[:db.part/db]
+     :db/ident :e.type/Tag}]
+
+   ;; Domain model attributes
+
+   [{:db/id          #db/id[:db.part/db]
+     :db/ident       :todo/subtasks
+     :db/valueType   :db.type/ref
+     :db/isComponent true
+     :db/cardinality :db.cardinality/many
+     :db/doc         "Reference to a task's subtasks"
+     :db.install/_attribute :db.part/db}]
+
+   ]}}

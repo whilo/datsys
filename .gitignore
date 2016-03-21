@@ -1,0 +1,18 @@
+/logs
+/target
+/classes
+/checkouts
+pom.xml
+pom.xml.asc
+*.jar
+*.class
+/.lein-*
+/.nrepl-port
+/resources/public/js/*.js
+/dev-resources
+profiles.clj
+figwheel_server.log
+config/local/
+data
+# So you can install datomic here
+datomic/
