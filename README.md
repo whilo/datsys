@@ -3,20 +3,25 @@
 
 Full stack `(+ clj cljs (reagent react.js) datomic datascript datsync)` template.
 
-Def. Catalysis:
-
 > The acceleration of a chemical reaction by a catalyst.
 
 
 ## Vision
 
-Catalysis is the culmination of:
+Catalysis is the intersection of the following:
 
-* Nikita Prokopov's [The Web After Tomorrow](http://tonsky.me/blog/the-web-after-tomorrow/) vision
-* The Re-frame pattern and materiled streams all the way down philosophy
-* The brilliance of Datomic
+* Nikita Prokopov's [The Web After Tomorrow](http://tonsky.me/blog/the-web-after-tomorrow/) vision and DataScript library
+* The [Re-frame pattern](https://github.com/Day8/re-frame) and "streaming materialized views all the way down" philosophy
+* Everything wonderful in Datomic/DataScript
 
-(More coming soon here...)
+### Web after tomorrow
+
+What if you could write client side code as though it were running on the server with a direct database connection?
+
+### Current state
+
+This is highly alpha and you shouldn't trust anything here.
+By reading further you agree to hold the author unaccountable if catalysis eats your socks.
 
 
 ## Usage
