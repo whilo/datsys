@@ -21,10 +21,11 @@
                                         :test-fn (fn [value] "Test if port is bound")}}
    :datomic-url            {:path [:datomic :url]}
    :datomic-seed-data    {:path [:datomic :seed-data]}
-   :datomic-reset-schema {:path [:datomic :reset-db] :parse ->boolean}})
+   :datomic-reset-schema {:path [:datomic :reset-db] :parse ?->boolean}})
 
 (def defaults
-  {:server {:port 8089}})
+  {:server {:port 8089}
+   :datomic {:url "datomic:mem://base"}})
 
 
 (defn get-environ-config [rules env]
