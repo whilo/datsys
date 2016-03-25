@@ -9,8 +9,7 @@
   (start [component]
     (log/info "adding data")
     (let [data (-> "resources/test-data.edn" slurp read-string)]
-      (log/info data)
-      @(d/transact (:conn datomic ) (first data))))
+      @(d/transact (:conn datomic) data)))
   (stop [component]
        component))
 
