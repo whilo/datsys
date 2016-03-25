@@ -16,4 +16,4 @@
 
 
 (defn add-data []
-  (map->add-test-data {}))
+  (map->addTestData {}))
