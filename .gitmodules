@@ -1,0 +1,3 @@
+[submodule "libs/datsync"]
+	path = libs/datsync
+	url = https://github.com/aquaticrna/datsync.git
