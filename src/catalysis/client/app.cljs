@@ -2,7 +2,9 @@
     (:require-macros [cljs.core.async.macros :refer [go-loop]]
                      [reagent.ratom :refer [reaction]])
     (:require [reagent.core :as reagent]
-              [re-frame.core :as re-frame]
+              [posh.core :refer [pull q db-tx pull-tx q-tx after-tx! transact! posh!]]
+              [datsync.client.core :as datsync]
+              [datascript.core :as d]
               [catalysis.client.views :as views]
               [catalysis.client.ws :as ws]
               ))
@@ -14,21 +16,21 @@
                  :messages []
                  :re-render-flip false}))
 
+(ws/test-socket-callback)
+
+(def conn (d/create-conn datsync/base-schema))
+
+(posh! conn)
+
 ;; Setting up data
-(ws/chsk-send! [:catalysis/load-base-data {}])
+;(ws/chsk-send! [:catalysis/load-base-data {()}])
 
-(def tags (reaction {:tags-state (last (filter :tags-state (:messages @state)))}))
-
-(defmulti handle-event (fn [data [ev-id ev-data]] ev-id))
-
-(defmethod handle-event :default
-  [data [_ msg]]
-  (swap! data update-in [:messages] #(conj % msg)))
+;(def tags (reagent/reaction {:tags-state (last (filter :tags-state (:messages @state)))}))
 
 ;; TODO Handle all events from the socket here by extending this multimethod
 
 (defn app [data]
-  (:re-render-flip @data)
+  ;(:re-render-flip @data)
   [views/main data])
 
 (defn ^:export main []

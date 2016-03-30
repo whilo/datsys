@@ -3,6 +3,7 @@
             [com.stuartsierra.component :as component]
             [compojure.core :refer [routes GET POST]]
             [compojure.route :as route]
+            [datsync.server.core :as datsync]
             [ring.util.response :as resp]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.middleware.resource :refer (wrap-resource)]

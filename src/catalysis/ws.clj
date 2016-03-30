@@ -2,6 +2,7 @@
   (:require [clojure.tools.logging :as log]
             [com.stuartsierra.component :as component]
             [clojure.core.async :as async]
+            [datsync.server.core :as datsync]
             [taoensso.sente.server-adapters.http-kit :as sente-http]
             [taoensso.sente :as sente]
             [taoensso.sente.packers.transit :as sente-transit]))
@@ -20,6 +21,11 @@
   (swap! ping-counts inc)
   (when (= 0 (mod @ping-counts 10))
     (println "ping counts: " @ping-counts)))
+
+(defmethod event-msg-handler :datsync.client/tx
+  [{:as app :keys [datomic ws-connection]} {:as ev-msg :keys [id ?data]}]
+  (let [tx-report @(datsync/transact-from-client! datomic ?data)]
+    (println "Do something with:" tx-report)))
 
 ;; TODO Delete me and other "test" things once we get datsync in place
 (defmethod event-msg-handler :catalysis/testevent
@@ -65,13 +71,21 @@
     (assoc component
       :ch-recv nil :connected-uids nil :send-fn nil :ring-handlers nil)))
 
-
 (defn send! [ws-connection user-id event]
   ((:send-fn ws-connection) user-id event))
 
 (defn broadcast! [ws-connection event]
   (let [uids (ws-connection :connected-uids )]
     (doseq [uid (:any @uids)] (send! ws-connection uid event))))
+
+(defn handle-transaction-report!
+  [tx-deltas ws-connection]
+  ;; This handler is where you would eventually set up subscriptions
+  (try
+    (broadcast! ws-connection [:datsync/tx-data tx-deltas])
+    (catch Exception e
+      (log/error "Failed to send transaction report to clients!")
+      (.printStackTrace e))))
 
 (defn ring-handlers [ws-connection]
   (:ring-handlers ws-connection))
