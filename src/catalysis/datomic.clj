@@ -1,5 +1,6 @@
 (ns catalysis.datomic
-  (:require [datomic.api :as d]
+  (:require [clojure.tools.logging :as log]
+            [datomic.api :as d]
             [clojure.java.io :as io]
             [io.rkn.conformity :as conformity]
             [com.stuartsierra.component :as component]))
@@ -31,6 +32,7 @@
           conn (d/connect url)]
       ;; XXX Should be a little smarter here and actually test to see if the schema is in place, then transact
       ;; if it isn't. Similarly when we get more robust migrations.
+      (log/info "Datomic Starting")
       (ensure-schema! conn)
       (when-let [seed-data-filename (-> config :datomic :seed-data)]
         (load-data! conn seed-data-filename))

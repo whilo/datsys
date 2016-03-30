@@ -50,7 +50,7 @@
             {:keys [ch-recv send-fn connected-uids
                     ajax-post-fn ajax-get-or-ws-handshake-fn]}
             (sente/make-channel-socket! sente-http/http-kit-adapter {:packer packer})]
-        (log/debug "WebSocket connection started")
+        (log/info "WebSocket connection started")
         (assoc component
           :ch-recv ch-recv
           :connected-uids connected-uids

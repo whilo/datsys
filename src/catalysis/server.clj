@@ -41,7 +41,7 @@
             handler (handler ajax-post-fn ajax-get-or-ws-handshake-fn)
 
             server-stop (run-server (app handler) {:port (-> config :server :port)})]
-        (log/debug "HTTP server started")
+        (log/info "HTTP server started")
         (assoc component :server-stop server-stop))))
   (stop [component]
     (when server-stop (server-stop))

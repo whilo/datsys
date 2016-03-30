@@ -1,5 +1,5 @@
 (defproject catalysis "1.0.0"
-  :description "On opinionated (+ clj cljs datomic datascript (reagent react) web development framework"
+  :description "On opinionated (+ clj cljs datomic datascript (reagent react) web development framework" ;;should this be "an" or "un"?
   ;; Change to catalysis.io eventually...
   :url "https://github.com/metasoarous/catalysis"
   :license {:name "Eclipse Public License"
@@ -26,18 +26,25 @@
                  [reagent "0.5.1"]
                  [re-frame "0.5.0"]
                  [org.webjars/bootstrap "3.3.5"]
+                 [posh "0.3.4.1"]
 
-                 [com.datomic/datomic-pro "0.9.5327" :exclusions [joda-time]]
+                 ;;For the free version of Datomic
+                 [com.datomic/datomic-free "0.9.5350"
+                  :exclusions [joda-time]]
+
                  [datascript "0.13.3"]
                  [io.rkn/conformity "0.4.0"]
                  ]
 
   :plugins [[lein-cljsbuild "1.1.0"]]
 
-  :repositories {"my.datomic.com" {:url "https://my.datomic.com/repo"
-                                   :username [:env/datomic_username]
-                                   :password [:env/datomic_password]}}
-                                   ;:creds :gpg}}
+;;For Datomic Pro uncomment this
+;  :repositories {"my.datomic.com" {:url
+;                                 "https://my.datomic.com/repo"
+;                                   :username
+;                                  [:env/datomic_username]
+;                                   :password
+;                                   [:env/datomic_password]}}
 
   :source-paths ["src"]
   :resource-paths ["resources" "resources-index/prod"]
