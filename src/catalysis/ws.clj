@@ -1,6 +1,7 @@
 (ns catalysis.ws
   (:require [clojure.tools.logging :as log]
             [com.stuartsierra.component :as component]
+            [datomic.api :as d]
             [clojure.core.async :as async]
             [datsync.server.core :as datsync]
             [taoensso.sente.server-adapters.http-kit :as sente-http]
@@ -26,6 +27,12 @@
   [{:as app :keys [datomic ws-connection]} {:as ev-msg :keys [id ?data]}]
   (let [tx-report @(datsync/transact-from-client! datomic ?data)]
     (println "Do something with:" tx-report)))
+
+(defmethod event-msg-handler :datsync.client/request-db
+  [{:as app :keys [datomic ws-connection]} {:as ev-msg :keys [id ?data ?reply-fn send-fn]}]
+  (if ?reply-fn
+    (?reply-fn [:datsynch.client/request-db {:db (pull-many db '[*] (q '[:find ?e :where [?e]] db))}])
+    ))
 
 ;; TODO Delete me and other "test" things once we get datsync in place
 (defmethod event-msg-handler :catalysis/testevent

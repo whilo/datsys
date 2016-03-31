@@ -21,13 +21,15 @@
               (tag-view tag))]])]
    ])
 
-(defn main [data]
+(defn main [conn]
+  (socket/chsk-send! [:catalysis/testevent {:message "please reply"}])
   [:div
-   [:h1 (:title @data)]
+   ;[:h1 (:title @data)]
    [:div "Hello world! This is reagent speaking!"]
    [:br]
    [:div "Look in your browsers developer console to see the web socket communication when clicking below buttons."]
    [:br]
+   [:div conn]
    [:button {:on-click socket/test-socket-callback} "Send Message Callback"]
    ;[:button {:on-click #(c
    [:br]

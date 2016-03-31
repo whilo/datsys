@@ -11,16 +11,21 @@
 
 ;; TODO Set up datascript conn, datsync and posh
 
-(defonce state
-  (reagent/atom {:title "Catalyst"
-                 :messages []
-                 :re-render-flip false}))
+;(defonce state
+;  (reagent/atom {:title "Catalyst"
+;                 :messages []
+;                 :re-render-flip false}))
 
-(ws/test-socket-callback)
+;(ws/test-socket-callback)
 
 (def conn (d/create-conn datsync/base-schema))
 
 (posh! conn)
+
+(ws/chsk-send!
+    [:datsync.client/request-db {:data "datadatadata"}]
+    2000
+    #(js/console.log "CALLBACK from server: " (pr-str %)))
 
 ;; Setting up data
 ;(ws/chsk-send! [:catalysis/load-base-data {()}])
@@ -35,5 +40,5 @@
 
 (defn ^:export main []
   (when-let [root (.getElementById js/document "app")]
-    (reagent/render-component [app state] root)))
+    (reagent/render-component [app conn] root)))
 
