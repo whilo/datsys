@@ -26,10 +26,6 @@
   [{:as ev-msg :keys [?data]}]
   (push-msg-handler ?data))
 
-(defmethod event-msg-handler :datsync/tx-data
-  [[_ tx-data]]
-  (datsync/apply-remote-tx! conn tx-data))
-
 (defn event-msg-handler* [{:as ev-msg :keys [id ?data event]}]
   (event-msg-handler ev-msg))
 
@@ -42,10 +38,16 @@
   (def chsk-send! send-fn)
   (def chsk-state state))
 
-(defn send-tx! [tx]
-  (ws/chsk-send! [:datsync.client/tx (datsync/datomic-tx conn tx)]))
+(defn send-tx! [conn tx]
+  (chsk-send! [:datsync.client/tx (datsync/datomic-tx conn tx)]))
 
 (sente/start-chsk-router! ch-chsk event-msg-handler*)
+
+(defn request-db [conn]
+  (chsk-send!
+    [:datsync.client/bootstrap]
+    2000
+    #(datsync/apply-remote-tx! conn %)))
 
 (defn test-socket-callback []
   (chsk-send!

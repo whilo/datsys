@@ -12,37 +12,39 @@
 
 (defmulti event-msg-handler :id) ; Dispatch on event-id
 ;; Wrap for logging, catching, etc.:
-(defn event-msg-handler* [{:as ev-msg :keys [id ?data event]}]
+(defn event-msg-handler* [datomic {:as ev-msg :keys [id ?data event]}]
   ;(log/info "Just got event:" event)
   ;(log/info "Just got data" ?data)
-  (event-msg-handler ev-msg))
+  (event-msg-handler ev-msg datomic))
 
 (defmethod event-msg-handler :chsk/ws-ping
-  [_]
+  [_ _]
   (swap! ping-counts inc)
   (when (= 0 (mod @ping-counts 10))
     (println "ping counts: " @ping-counts)))
 
 (defmethod event-msg-handler :datsync.client/tx
-  [{:as app :keys [datomic ws-connection]} {:as ev-msg :keys [id ?data]}]
+  [{:as ev-msg :keys [id ?data]} datomic]
   (let [tx-report @(datsync/transact-from-client! datomic ?data)]
     (println "Do something with:" tx-report)))
 
-(defmethod event-msg-handler :datsync.client/request-db
-  [{:as app :keys [datomic ws-connection]} {:as ev-msg :keys [id ?data ?reply-fn send-fn]}]
+(defmethod event-msg-handler :datsync.client/bootstrap
+  [{:as ev-msg :keys [id ?data ?reply-fn send-fn]} datomic]
   (if ?reply-fn
-    (?reply-fn [:datsynch.client/request-db {:db (pull-many db '[*] (q '[:find ?e :where [?e]] db))}])
-    ))
+    (?reply-fn (into [] (for [datom (d/datoms (d/db (:conn datomic)) :eavt)] (let [[e a v t] datom] [:db/add e a v])))))
+    )
+
+
 
 ;; TODO Delete me and other "test" things once we get datsync in place
 (defmethod event-msg-handler :catalysis/testevent
-  [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
+  [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]} _]
   (if ?reply-fn
     (?reply-fn [:catalysis/testevent {:message (str "Hello socket from server Callback, received: " ?data)}])
     (send-fn :sente/all-users-without-uid [:catalysis/testevent {:message (str "Hello socket from server Event (no callback), received: " ?data)}])))
 
 (defmethod event-msg-handler :default ; Fallback
-  [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
+  [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]} _]
   (let [session (:session ring-req)
         uid     (:uid     session)]
     (println "Unhandled event: %s" event)
@@ -51,7 +53,7 @@
 
 (defrecord WSRingHandlers [ajax-post-fn ajax-get-or-ws-handshake-fn])
 
-(defrecord WSConnection [ch-recv connected-uids send-fn ring-handlers]
+(defrecord WSConnection [ch-recv connected-uids send-fn ring-handlers datomic]
   component/Lifecycle
   (start [component]
     (if (and ch-recv connected-uids send-fn ring-handlers)
@@ -68,7 +70,7 @@
           :ch-recv ch-recv
           :connected-uids connected-uids
           :send-fn send-fn
-          :stop-the-thing (sente/start-chsk-router! ch-recv event-msg-handler*)
+          :stop-the-thing (sente/start-chsk-router! ch-recv (partial event-msg-handler* datomic))
           :ring-handlers
           (->WSRingHandlers ajax-post-fn ajax-get-or-ws-handshake-fn)))))
   (stop [component]

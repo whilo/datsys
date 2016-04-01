@@ -22,15 +22,16 @@
 
 (posh! conn)
 
-(ws/chsk-send!
-    [:datsync.client/request-db {:data "datadatadata"}]
-    2000
-    #(js/console.log "CALLBACK from server: " (pr-str %)))
+(defmethod ws/event-msg-handler :datsync/tx-data
+  [[_ tx-data]]
+  (datsync/apply-remote-tx! conn tx-data))
+
+(ws/request-db conn)
 
 ;; Setting up data
 ;(ws/chsk-send! [:catalysis/load-base-data {()}])
 
-;(def tags (reagent/reaction {:tags-state (last (filter :tags-state (:messages @state)))}))
+(def tags (reagent/atom {:tags-state (last (filter :tags-state []))}))
 
 ;; TODO Handle all events from the socket here by extending this multimethod
 
