@@ -1,12 +1,18 @@
 
-# Catalysis
+![Catalysis](catalysis.jpg)
 
-[![Join the chat at https://gitter.im/metasoarous/catalysis](https://badges.gitter.im/metasoarous/catalysis.svg)](https://gitter.im/metasoarous/catalysis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Full stack `(+ clj cljs (reagent react.js) datomic datascript datsync)` template.
 
+
+[![Join the chat at https://gitter.im/metasoarous/catalysis](https://badges.gitter.im/metasoarous/catalysis.svg)](https://gitter.im/metasoarous/catalysis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+
+## Definition
+
 > The acceleration of a chemical reaction by a catalyst.
 
+<br/>
 
 ## Vision
 
