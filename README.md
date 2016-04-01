@@ -21,83 +21,13 @@ What if you could write client side code as though it were running on the server
 ### Current state
 
 This is highly alpha and you shouldn't trust anything here.
-By reading further you agree to hold the author unaccountable if catalysis eats your socks.
+By reading further you agree to hold the author unaccountable if catalysis eats your cat.
 
 
 ## Usage
 
-Clone, and cd into the project directory (`catalysis`).
-
-
-### Datomic
-
-First, you'll need to get datomic up and running.
-Go get the Datomic Pro Starter edition at <http://www.datomic.com/pricing.html>.
-Then go to <https://my.datomic.com/account> and copy the bit that looks like:
-
-```
-;; ~/.lein/credentials.clj.gpg (see the Leiningen deploy authentication docs)
-{#"my\.datomic\.com" {:username "your@email.com"
-                      :password "xxxxxxxxxxxxxxxxxxxxxxxxx"}}
-```
-
-Copy over the file from `config/example/env.sh`, and put it in `config/local/env.sh`.
-Then copy the username and password into the appropriate spots in that file, leaving something like this:
-
-```
-export DATOMIC_USERNAME="your@email.com"
-export DATOMIC_PASSWORD="xxxxxxxxxxxxxxxxxxxxx"
-```
-
-You can now run `source config/local/env.sh` to get those env variables loaded so Leiningen can download Datomic for you.
-This file is in the `.gitignore`, so you don't have to worry about it.
-
-
-#### Getting the transactor running
-
-Once you have all that set up, you need to download the transactor.
-Back on that Datomic Account page, there should be a section with a wget/curl instruction set, looking something like:
-
-```
-wget --http-user=chris@thoughtnode.com --http-password=xxxxxxxxxxxxxxxxxxxxxxx https://my.datomic.com/repo/com/datomic/datomic-pro/0.9.5130/datomic-pro-0.9.5130.zip -O datomic-pro-0.9.5130.zip
-```
-
-Run that, and stash in some directory where you have easy access to it.
-Maybe even put the bin directory there on your path.
-Whatever.
-The long story short is you'll be running the transactor from there.
-Once extracted, `cd` into that directory and run `bin/transactor path/to/your/dev-transactor.properties`.
-There is a `config/example/dev-transactor.properties` file to get you going.
-You can `cp` that into `config/local`.
-
-Once there, you just have to put your License key in there (see account page to have key sent to you).
-Then you can run the transactor and connect to it.
-
-
-##### Alternative credential security? (not necessary)
-
-You can also try to get your credentials secured with GPG.
-There are a couple extra hoops there, and I had trouble getting it to work at first.
-Part of that was I think a GPG bug; the other part may have been me having a bad Datomic version number in there.
-In any caes, if you want to try...
-
-Put that snippet from the Datomic website in a file `~/.lein/credentials.clj`.
-Then run
-
-```
-gpg --default-recipient-self -e ~/.lein/credentials.clj  > ~/.lein/credentials.clj.gpg
-```
-
-Note that you'll need a gpg key set up for this, which you can accomplish with `gpg --gen-key`.
-Make sure to move you're mouse around for... err... entropy...
-You may have to specify something like `-r "<your@email.com>"` if it's having trouble finding you (include the `"` and `<` in there).
-If you have set everything up you shouldn't get any errors when you run `lein deps`.
-
-As pointed out on the Leiningen page, you may have to decrypt the gpg after running `gpg --decrypt` on the file.
-I'm actually still having trouble with this part possibly, so maybe let me know if you figure it out (or PR
-these docs)
-
-<https://github.com/technomancy/leiningen/blob/master/doc/DEPLOY.md#authentication>
+To get running, clone, and cd into the project directory (`catalysis`).
+Assuming you want to use the free version of datomic to test things out, you should be able to run
 
 
 ### Figwheel
@@ -145,9 +75,56 @@ http://localhost:8080 (or whatever you set $PORT to)
 Open up your browser console, which will log the data returned from the server when you click either of the 2 buttons for socket with/without callback (pull/push).
 
 
-## Deploying to Heroku
+## Customizing your app
 
-To make Rente run on Heroku, you need to let Leiningen on Heroku use the "package" build task.
+Yay!
+If you've gotten through the Usage section, you have a running system with some data loaded and ready to tinker with!
+At this point, you might want to tinker around with the Todo app a little bit to feel out how things work.
+But you'll surely soon want to start reshaping things into your own project.
+
+### Schema
+
+Because of the seamless shuttling of data back and forth between server and client, much of the customization work to do on the server is in the schema.
+
+The schema file is located in `resources/schema.edn`.
+The data in this file is a [conformity](https://github.com/rkneufeld/conformity) spec, so you can continue to use this same file for all your migrations.
+If you want to see how these migrations are hooked up, take a look at the `catalysis.datomic/Datomic` component.
+
+
+### Front end components
+
+The main namespace for the client is `catalysis.client.app`.
+This is where everything hooks together.
+We may eventually set up Stuart Sierra's component here as well, but for now, thing of this as your system bootstrap process.
+
+Views are in `catalysis.client.views`, and you'll note that the `main` function there is hooked up at the end of the `app` namespace.
+This is where you write your view code.
+This view code is written in a combination of [posh](https://github.com/mpdairy/posh) and [reagent](https://github.com/reagent-project/reagent), so you'll need to be fluent with those libs to get moving here.
+
+The long and short of it though is that posh lets us write Reagent reactions as DataScripts queries (`q`, `pull`, `pull-many`, `filter-pull`, `filter-q`, etc.).
+Thus, we obtain the re-frame "reactive materialized views" architecture with declarative query descriptions, al. a DataScript databases.
+
+
+### More coming soon...
+
+
+## Future
+
+### Re-frame style organization
+
+Ideally, we'd have a nice way for organizing subscriptions and event handlers inspired by re-frame.
+Need to look further into how we should do this.
+To a certain extent, there's a lot of organizational overlap somewhat automatically.
+But building up more specific patterns around this organization will help things feel polished.
+
+
+## Miscellany
+
+I haven't tried any of these things, but...
+
+### Deploying to Heroku
+
+To make Catalysis run on Heroku, you need to let Leiningen on Heroku use the "package" build task.
 
 To do this, and point Leiningen on Heroku to the "package" target, add the following config variable to Heroku by running this command:
 
@@ -162,8 +139,23 @@ Everything is nicely wrapped in shiny purple foil if you simply click this butto
 Enjoy!
 
 
-## Mobile App?
+### Mobile App?
 
 Maybe in the future we'll build a nativish mobile app out of this thing using Cordova.
 The following has an example of this: [Enterlab CorDeviCLJS](https://github.com/enterlab/cordevicljs)
+
+
+## Contributions
+
+This code was initially developed as a fork of Rente, but has diverged.
+We thank the authors of Rente for their contribution.
+
+This library is authored by Christopher T. Small, with the help of the following individuals:
+
+Kyle Langford
+
+
+See LICENSE for license.
+
+
 
