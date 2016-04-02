@@ -2,7 +2,10 @@
   (:require [clojure.tools.logging :as log]
             [com.stuartsierra.component :as component]
             [catalysis.datomic :as datomic]
-            [catalysis.ws :as ws]))
+            [catalysis.ws :as ws]
+            [taoensso.sente :as sente]
+            [datsync.server.core :as datsync]
+            [datomic.api :as d]))
 
 
 ;; # Application
@@ -44,7 +47,7 @@
                           (:ch-recv ws-connection)
                           (partial event-msg-handler component))]
       ;; Start our transaction listener
-      (datsync/start-transaction-listener (:tx-report-queue datomic) (partial handle-transaction-report! ws-connection))
+      (datsync/start-transaction-listener! (:tx-report-queue datomic) (partial handle-transaction-report! ws-connection))
       (assoc component :sente-stop-fn sente-stop-fn)))
   (stop [component]
     (log/debug "Stopping websocket router")
@@ -90,6 +93,6 @@
 
 (defmethod event-msg-handler :default ; Fallback
   [app {:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
-  (log/warning "Unhandled event:" (with-out-str (clojure.pprint/pprint event))))
+  (log/warn "Unhandled event:" (with-out-str (clojure.pprint/pprint event))))
 
 

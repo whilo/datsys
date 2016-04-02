@@ -48,10 +48,10 @@
   (-> component :config :datomic :url d/delete-database))
 
 
-(defn boostrap
+(defn bootstrap
   [db]
   (let [eids (map (fn [[e a v t]] e) (d/datoms db :eavt))]
     (d/pull-many db '[*] eids)))
-    
+
 
 
