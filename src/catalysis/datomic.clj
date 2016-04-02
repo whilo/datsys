@@ -24,19 +24,18 @@
   (let [data (-> filename slurp read-string)]
     (d/transact conn data)))
 
-(defrecord Datomic [config conn]
+(defrecord Datomic [config conn tx-report-queue]
   component/Lifecycle
   (start [component]
     (let [url (-> config :datomic :url)
           created? (d/create-database url)
-          conn (d/connect url)]
+          conn (d/connect url)
+          tx-report-queue (d/tx-report-queue conn)]
       ;; XXX Should be a little smarter here and actually test to see if the schema is in place, then transact
       ;; if it isn't. Similarly when we get more robust migrations.
       (log/info "Datomic Starting")
       (ensure-schema! conn)
-      (when-let [seed-data-filename (-> config :datomic :seed-data)]
-        (load-data! conn seed-data-filename))
-      (assoc component :conn conn)))
+      (assoc component :conn conn :tx-report-queue tx-report-queue)))
   (stop [component]
     (d/release conn)
     (assoc component :conn nil)))
@@ -48,19 +47,11 @@
   [component]
   (-> component :config :datomic :url d/delete-database))
 
-;; Add basic datomic logic here TODO
-(comment
-  (require 'user)
-  (def datomic (-> user/system :datomic))
-  (println "there are" (count (d/history (d/db (:conn datomic)))))
-  (d/transact (-> datomic :conn)
-              (-> "config/local/seed-data.edn" slurp read-string))
-  (d/q '[:find (pull ?e)
-         :where [?t :e/name "polis"]
-                [?e :e/tags ?t]
-                [?e :e/name ?ename]
-         ] (-> datomic :conn d/db))
 
- )
+(defn boostrap
+  [db]
+  (let [eids (map (fn [[e a v t]] e) (d/datoms (d/db (:conn datomic)) :eavt))]
+    (d/pull-many (d/db (:conn datomic)) '[*] eids)))
+    
 
 

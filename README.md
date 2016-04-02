@@ -2,10 +2,7 @@
 ![Catalysis](catalysis.jpg)
 
 
-Full stack `(+ clj cljs (reagent react.js) datomic datascript datsync)` template.
-
-
-[![Join the chat at https://gitter.im/metasoarous/catalysis](https://badges.gitter.im/metasoarous/catalysis.svg)](https://gitter.im/metasoarous/catalysis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+Full stack `(+ clj cljs reagent datomic datascript datsync)` web development.
 
 
 ## Definition
@@ -14,28 +11,31 @@ Full stack `(+ clj cljs (reagent react.js) datomic datascript datsync)` template
 
 <br/>
 
+[![Join the chat at https://gitter.im/metasoarous/catalysis](https://badges.gitter.im/metasoarous/catalysis.svg)](https://gitter.im/metasoarous/catalysis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+<br/>
+
+
 ## Vision
 
-Catalysis is the intersection of the following:
+Catalysis is built upon the following:
 
 * Nikita Prokopov's [The Web After Tomorrow](http://tonsky.me/blog/the-web-after-tomorrow/) vision and DataScript library
 * The [Re-frame pattern](https://github.com/Day8/re-frame) and "streaming materialized views all the way down" philosophy
-* Everything wonderful in Datomic/DataScript
+* Maximized potential of Datomic/DataScript
 
-### Web after tomorrow
-
-What if you could write client side code as though it were running on the server with a direct database connection?
 
 ### Current state
 
-This is highly alpha and you shouldn't trust anything here.
-By reading further you agree to hold the author unaccountable if catalysis eats your cat.
 
 
 ## Usage
 
+Note: This is highly alpha; catalysis is liable to _eat your cat_.
+
 To get running, clone, and cd into the project directory (`catalysis`).
-Assuming you want to use the free version of datomic to test things out, you should be able to run
+Assuming you want to use the free version of Datomic to test things out, things _should_ run out of the box here (soon anyway...).
+There's a partial description in the wiki of how to get Datomic Pro set up with this application, should you need it.
 
 
 ### Figwheel
@@ -71,7 +71,7 @@ You can also call something like `(run {:server {:port 8882}})` to specify confi
 The schema for this is in `catalysis.config`.
 Unfortunately, not sure yet how to get the `reset` function to also accept the `config-overrides` option.
 
-And maybe also helpers for running multiple instances at once to test different things...
+And maybe eventually we'll also helpers for running multiple instances at once to test different things...
 But one step at a time :-)
 
 

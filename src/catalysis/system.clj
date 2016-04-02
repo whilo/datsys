@@ -13,7 +13,7 @@
   ([config-overrides]
    (component/system-map
      :config (config/create-config config-overrides)
-     :ws-connection (component/using (ws/new-ws-connection) [:config :datomic])
+     :ws-connection (component/using (ws/new-ws-connection) [:config])
      :http-server (component/using (server/new-http-server) [:config :ws-connection])
      :datomic (component/using (datomic/create-datomic) [:config])
      :import-data (component/using (imp/add-data) [:datomic :ws-connection])
