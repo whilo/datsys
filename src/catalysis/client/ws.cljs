@@ -45,9 +45,11 @@
 
 (defn request-db [conn]
   (chsk-send!
-    [:datsync.client/bootstrap]
+    [:datsync.client/bootstrap nil]
     2000
-    #(datsync/apply-remote-tx! conn %)))
+    #(do
+       (js/console.log %)
+       (datsync/apply-remote-tx! conn (into [] (:datsync/tx %))))))
 
 (defn test-socket-callback []
   (chsk-send!

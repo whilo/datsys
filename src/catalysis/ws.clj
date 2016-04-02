@@ -31,8 +31,12 @@
 (defmethod event-msg-handler :datsync.client/bootstrap
   [{:as ev-msg :keys [id ?data ?reply-fn send-fn]} datomic]
   (if ?reply-fn
-    (?reply-fn (into [] (for [datom (d/datoms (d/db (:conn datomic)) :eavt)] (let [[e a v t] datom] [:db/add e a v])))))
-    )
+    ;(?reply-fn [:datsync/tx (for [datom (d/datoms (d/db (:conn datomic)) :eavt)] (let [[e a v t] datom] [:db/add e a v]))]))
+    (?reply-fn
+      (let [eids (map (fn [[e a v t]] e) (d/datoms (d/db (:conn datomic)) :eavt))]
+        (println (d/pull-many (d/db (:conn datomic)) '[*] eids))
+        (d/pull-many (d/db (:conn datomic)) '[*] eids)))
+    ))
 
 
 
