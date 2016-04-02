@@ -11,4 +11,6 @@
 (posh/posh! conn)
 
 ;; crickets; seems like we're using nss as ss component
+;; kind of anti pattern; maybe it will make more sense if we also
+;; put our posh reactions/subscriptions here
 
