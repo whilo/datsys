@@ -2,19 +2,7 @@
   (:require [catalysis.client.ws :as socket]))
 
 
-;; Rewrite in terms of posh XXX
-(defn tasks-view
-  [tasks-data]
-  [:div
-   [:h2 "Todo"]
-   [:table
-    [:tr [:th "Task"] [:th "Tags"]]
-    (for [task (tasks-data)]
-      [:tr
-       [:td (:e/name task)]
-       [:td (for [tag (:e/tags task)]
-              (tag-view tag))]])]])
-   
+;; TODO build application view here
 
 (defn main [conn]
   [:div
