@@ -61,6 +61,6 @@
                 [?e :e/name ?ename]
          ] (-> datomic :conn d/db))
 
-  )
+ )
 
 

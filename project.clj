@@ -27,7 +27,7 @@
                  [re-frame "0.5.0"]
                  [org.webjars/bootstrap "3.3.5"]
                  [posh "0.3.4.1"]
-
+                 [org.clojure/core.match "0.3.0-alpha4"]
                  ;;For the free version of Datomic
                  [com.datomic/datomic-free "0.9.5350"
                   :exclusions [joda-time]]
@@ -46,7 +46,8 @@
 ;                                   :password
 ;                                   [:env/datomic_password]}}
 
-  :source-paths ["src"]
+  :source-paths ["src"
+                 "libs/datsync/src"]
   :resource-paths ["resources" "resources-index/prod"]
   :target-path "target/%s"
 

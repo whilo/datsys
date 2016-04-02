@@ -1,5 +1,6 @@
 (ns catalysis.client.ws
   (:require [taoensso.sente :as sente]
+            [datsync.client.core :as datsync]
             [taoensso.sente.packers.transit :as sente-transit]))
 
 (defmulti push-msg-handler (fn [[id _]] id)) ; Dispatch on event key which is 1st elem in vector
@@ -37,7 +38,18 @@
   (def chsk-send! send-fn)
   (def chsk-state state))
 
+(defn send-tx! [conn tx]
+  (chsk-send! [:datsync.client/tx (datsync/datomic-tx conn tx)]))
+
 (sente/start-chsk-router! ch-chsk event-msg-handler*)
+
+(defn request-db [conn]
+  (chsk-send!
+    [:datsync.client/bootstrap nil]
+    2000
+    #(do
+       (js/console.log %)
+       (datsync/apply-remote-tx! conn (into [] (:datsync/tx %))))))
 
 (defn test-socket-callback []
   (chsk-send!
