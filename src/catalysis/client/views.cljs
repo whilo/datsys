@@ -1,5 +1,6 @@
 (ns catalysis.client.views
-  (:require [catalysis.client.ws :as socket]))
+  (:require [catalysis.client.ws :as socket]
+            [posh.core :as posh]))
 
 
 ;; TODO build application view here
