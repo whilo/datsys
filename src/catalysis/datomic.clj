@@ -50,8 +50,8 @@
 
 (defn boostrap
   [db]
-  (let [eids (map (fn [[e a v t]] e) (d/datoms (d/db (:conn datomic)) :eavt))]
-    (d/pull-many (d/db (:conn datomic)) '[*] eids)))
+  (let [eids (map (fn [[e a v t]] e) (d/datoms db :eavt))]
+    (d/pull-many db '[*] eids)))
     
 
 
