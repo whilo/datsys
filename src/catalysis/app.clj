@@ -1,6 +1,7 @@
 (ns catalysis.app
   (:require [clojure.tools.logging :as log]
             [com.stuartsierra.component :as component]
+            [slingshot.slingshot :as slingshot :refer [throw+ try+]]
             [catalysis.datomic :as datomic]
             [catalysis.ws :as ws]
             [taoensso.sente :as sente]
@@ -16,13 +17,18 @@
 
 ;; ## First we set up our event handler multimethod function, and a wrapper for it
 
-; Dispatch on event-id
-(defmulti event-msg-handler :id)
+(defmulti event-msg-handler
+  ; Dispatch on event-id
+  (fn [app {:as event-msg :keys [id]}] id))
 
-;; Wrap for logging, catching, etc.:
-(defn event-msg-handler* [app {:as ev-msg :keys [id ?data event]}]
-  (event-msg-handler ev-msg app))
-
+;; Wrap with middleware instead
+;(defn event-msg-handler* [app {:as event-msg :keys [id ?data event]}]
+  ;(try+
+    ;(event-msg-handler event-msg app)
+    ;(catch Object e
+      ;(log/error "failed to run message handler!")
+      ;(.printStackTrace e)
+      ;(throw+))))
 
 
 ;; ## Transaction report handler
@@ -45,7 +51,9 @@
     (log/info "Starting websocket router and transaction listener")
     (let [sente-stop-fn (sente/start-chsk-router!
                           (:ch-recv ws-connection)
-                          (partial event-msg-handler component))]
+                          (fn [event] (log/info "Just got event:" (with-out-str (clojure.pprint/pprint))))
+                          ;; There sould be a way of specifying app-wide middleware here
+                          #_(partial event-msg-handler component))]
       ;; Start our transaction listener
       (datsync/start-transaction-listener! (:tx-report-queue datomic) (partial handle-transaction-report! ws-connection))
       (assoc component :sente-stop-fn sente-stop-fn)))
@@ -74,25 +82,39 @@
 
 ;; don't really need this... should delete
 (defmethod event-msg-handler :chsk/ws-ping
-  [_ _])
+  [_ _]
+  (log/info "Ping"))
 
 ;; Setting up our two main datsync hooks
 
 ;; General purpose transaction handler
 (defmethod event-msg-handler :datsync.client/tx
-  [{:as app :keys [datomic]} {:as ev-msg :keys [id ?data]}]
+  [{:as app :keys [datomic]} {:as event-msg :keys [id ?data]}]
   (let [tx-report @(datsync/transact-from-client! (:conn datomic) ?data)]
     (println "Do something with:" tx-report)))
 
 ;; We handle the bootstrap message by simply sending back the bootstrap data
 (defmethod event-msg-handler :datsync.client/bootstrap
-  [{:as app :keys [datomic ws-connection]} {:as ev-msg :keys [id ?data ?reply-fn send-fn]}]
+  ;; What is send-fn here? Does that wrap the uid for us? (0.o)
+  [{:as app :keys [datomic ws-connection]} {:as event-msg :keys [id uid send-fn]}]
   (log/info "Sending bootstrap message")
-  (ws/send! ws-connection (datomic/bootstrap (d/db (:conn datomic)))))
+  (ws/send! ws-connection uid (datomic/bootstrap (d/db (:conn datomic)))))
 
-;; Fallback handler; send message saying I don't know what you mean
+;; Fallback handler; should send message saying I don't know what you mean
 (defmethod event-msg-handler :default ; Fallback
-  [app {:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
+  [app {:as event-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
   (log/warn "Unhandled event:" (with-out-str (clojure.pprint/pprint event))))
+
+
+;; ## Debugging
+
+
+;; You can leave, commented out, some code which grabs the active system and runs some quick checks for the
+;; scope in which you
+(comment
+  (require 'user)
+  (let [ws-connection (:ws-connection user/system)]
+    (send-tx!))) 
+  
 
 

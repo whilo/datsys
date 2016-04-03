@@ -7,17 +7,16 @@
             [com.stuartsierra.component :as component]
             [catalysis.app :as app]))
 
-(defrecord addTestData [datomic]
+(defrecord Importer [config datomic]
   component/Lifecycle
   (start [component]
-    (log/info "adding data")
+    (log/info "Importering data")
     (let [data (-> "resources/test-data.edn" slurp read-string)]
-      (datsync/start-transaction-listener! (d/tx-report-queue (:conn datomic)) app/handle-transaction-report!)
       @(d/transact (:conn datomic) data)))
   (stop [component]
        component))
 
 
-(defn add-data []
-  (map->addTestData {}))
+(defn new-importer []
+  (map->Importer {}))
 

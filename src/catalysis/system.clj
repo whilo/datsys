@@ -6,17 +6,17 @@
             [catalysis.datomic :as datomic]
             [catalysis.server :as server]
             [catalysis.app :as app]
-            [catalysis.import :as imp]
-            ))
+            [catalysis.import :as import]))
+            
 
 (defn create-system
   ([config-overrides]
    (component/system-map
      :config (config/create-config config-overrides)
-     :ws-connection (component/using (ws/new-ws-connection) [:config])
-     :http-server (component/using (server/new-http-server) [:config :ws-connection])
      :datomic (component/using (datomic/create-datomic) [:config])
-     :import-data (component/using (imp/add-data) [:datomic :ws-connection])
+     :importer (component/using (import/new-importer) [:config :datomic])
+     :ws-connection (component/using (ws/new-ws-connection) [:config])
+     :http-server (component/using (server/new-http-server) [:datomic :config :ws-connection])
      :app (component/using (app/new-app) [:config :ws-connection :datomic])))
   ([] (create-system {})))
 
