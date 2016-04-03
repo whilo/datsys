@@ -9,7 +9,6 @@
             [taoensso.sente.packers.transit :as sente-transit]))
 
 
-
 (defrecord WSRingHandlers [ajax-post-fn ajax-get-or-ws-handshake-fn])
 
 (defrecord WSConnection [ch-recv connected-uids send-fn ring-handlers]
