@@ -31,45 +31,6 @@
       ;(throw+))))
 
 
-;; ## Transaction report handler
-
-;; TODO XXX write me to remove any :db/fn values
-(declare filter-tx-deltas)
-(def filter-tx-deltas identity)
-
-(defn handle-transaction-report!
-  [ws-connection tx-deltas]
-  ;; This handler is where you would eventually set up subscriptions
-  (try
-    (let [tx-deltas (filter-tx-deltas tx-deltas)]
-      (ws/broadcast! ws-connection [:datsync/tx-data tx-deltas]))
-    (catch Exception e
-      (log/error "Failed to send transaction report to clients!")
-      (.printStackTrace e))))
-
-
-;; ## The actual app component, which starts sente's chsk router and hooks up the msg handler
-
-(defrecord App [config datomic ws-connection sente-stop-fn]
-  component/Lifecycle
-  (start [component]
-    (log/info "Starting websocket router and transaction listener")
-    (let [sente-stop-fn (sente/start-chsk-router!
-                          (:ch-recv ws-connection)
-                          ;(fn [event] (log/info "Just got event:" (with-out-str (clojure.pprint/pprint)))) 
-                          ;; There sould be a way of specifying app-wide middleware here
-                          (partial event-msg-handler component))]
-      ;; Start our transaction listener
-      (datsync/start-transaction-listener! (:tx-report-queue datomic) (partial handle-transaction-report! ws-connection))
-      (assoc component :sente-stop-fn sente-stop-fn)))
-  (stop [component]
-    (log/debug "Stopping websocket router")
-    (sente-stop-fn)
-    component))
-
-(defn new-app []
-  (map->App {}))
-
 
 ;; ## Event handlers
 
@@ -99,8 +60,48 @@
   (log/warn "Unhandled event:" id))
 
 
-;; ## Debugging
+;; ## Transaction report handler
 
+;; TODO XXX write me to remove any :db/fn values
+(declare filter-tx-deltas)
+(def filter-tx-deltas identity)
+
+(defn handle-transaction-report!
+  [ws-connection tx-deltas]
+  ;; This handler is where you would eventually set up subscriptions
+  (try
+    (let [tx-deltas (filter-tx-deltas tx-deltas)]
+      (ws/broadcast! ws-connection [:datsync/tx-data tx-deltas]))
+    (catch Exception e
+      (log/error "Failed to send transaction report to clients!")
+      (.printStackTrace e))))
+
+;; ## The actual app component, which starts sente's chsk router and hooks up the msg handler
+
+(defrecord App [config datomic ws-connection sente-stop-fn]
+  component/Lifecycle
+  (start [component]
+    (log/info "Starting websocket router and transaction listener")
+    (let [sente-stop-fn (sente/start-chsk-router!
+                          (:ch-recv ws-connection)
+                          ;(fn [event] (log/info "Just got event:" (with-out-str (clojure.pprint/pprint)))) 
+                          ;; There sould be a way of specifying app-wide middleware here
+                          (partial event-msg-handler component))]
+      ;; Start our transaction listener
+      (datsync/start-transaction-listener! (:tx-report-queue datomic) (partial handle-transaction-report! ws-connection))
+      (assoc component :sente-stop-fn sente-stop-fn)))
+  (stop [component]
+    (log/debug "Stopping websocket router")
+    (sente-stop-fn)
+    component))
+
+(defn new-app []
+  (map->App {}))
+
+
+
+
+;; ## Debugging
 
 ;; You can leave, commented out, some code which grabs the active system and runs some quick checks for the
 ;; scope in which you
