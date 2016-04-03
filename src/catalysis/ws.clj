@@ -4,7 +4,6 @@
             [datomic.api :as d]
             [catalysis.datomic :as datomic]
             [clojure.core.async :as async]
-            [datsync.server.core :as datsync]
             [taoensso.sente.server-adapters.http-kit :as sente-http]
             [taoensso.sente :as sente]
             [taoensso.sente.packers.transit :as sente-transit]))

@@ -33,11 +33,16 @@
 
 ;; ## Transaction report handler
 
+;; TODO XXX write me to remove any :db/fn values
+(declare filter-tx-deltas)
+(def filter-tx-deltas identity)
+
 (defn handle-transaction-report!
   [ws-connection tx-deltas]
   ;; This handler is where you would eventually set up subscriptions
   (try
-    (ws/broadcast! ws-connection [:datsync/tx-data tx-deltas])
+    (let [tx-deltas (filter-tx-deltas tx-deltas)]
+      (ws/broadcast! ws-connection [:datsync/tx-data tx-deltas]))
     (catch Exception e
       (log/error "Failed to send transaction report to clients!")
       (.printStackTrace e))))
@@ -51,27 +56,15 @@
     (log/info "Starting websocket router and transaction listener")
     (let [sente-stop-fn (sente/start-chsk-router!
                           (:ch-recv ws-connection)
-                          (fn [event] (log/info "Just got event:" (with-out-str (clojure.pprint/pprint))))
+                          ;(fn [event] (log/info "Just got event:" (with-out-str (clojure.pprint/pprint)))) 
                           ;; There sould be a way of specifying app-wide middleware here
-                          #_(partial event-msg-handler component))]
+                          (partial event-msg-handler component))]
       ;; Start our transaction listener
       (datsync/start-transaction-listener! (:tx-report-queue datomic) (partial handle-transaction-report! ws-connection))
       (assoc component :sente-stop-fn sente-stop-fn)))
   (stop [component]
     (log/debug "Stopping websocket router")
     (sente-stop-fn)
-    component))
-
-(defn new-app []
-  (map->App {}))
-
-(defrecord App [config ws-connection]
-  component/Lifecycle
-  (start [component]
-    (log/debug "Application logic started")
-    component)
-  (stop [component]
-    (log/debug "Application logic stopped")
     component))
 
 (defn new-app []
@@ -98,12 +91,12 @@
   ;; What is send-fn here? Does that wrap the uid for us? (0.o)
   [{:as app :keys [datomic ws-connection]} {:as event-msg :keys [id uid send-fn]}]
   (log/info "Sending bootstrap message")
-  (ws/send! ws-connection uid (datomic/bootstrap (d/db (:conn datomic)))))
+  (ws/send! ws-connection uid [:datsync.client/bootstrap (datomic/bootstrap (d/db (:conn datomic)))]))
 
 ;; Fallback handler; should send message saying I don't know what you mean
 (defmethod event-msg-handler :default ; Fallback
   [app {:as event-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
-  (log/warn "Unhandled event:" (with-out-str (clojure.pprint/pprint event))))
+  (log/warn "Unhandled event:" id))
 
 
 ;; ## Debugging
