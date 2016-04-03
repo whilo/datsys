@@ -31,8 +31,7 @@
 ;; Set up push message handler
 
 ; Dispatch on event key which is 1st elem in vector
-(defmulti push-msg-handler
-  (fn [[id _]] id))
+(defmulti push-msg-handler first)
 
 (defmethod event-msg-handler :chsk/recv
   [{:as ev-msg :keys [?data]}]
@@ -46,12 +45,15 @@
   [[_ tx-data]]
   (datsync/apply-remote-tx! db/conn tx-data))
 
-(defmethod event-msg-handler :datsync.client/bootstrap
+(defmethod push-msg-handler :datsync.client/bootstrap
   [[_ tx-data]]
   ;; Possibly falg some state somewhere saying bootstrap has taken place?
+  (println "Recieved tx")
+  ;(doseq [x-form (remove :db/id tx-data)]
+    ;(println "    " x-form))
   (datsync/apply-remote-tx! db/conn tx-data))
 
-;; ## TODO Add any custom handlers here!
+;; TODO Add any custom handlers here!
 
 
 
@@ -59,7 +61,8 @@
 ;; ## First up Sente, define send-tx!, and hook up message handler router
 
 (defrecord DBFn [lang params code])
-(cljs.reader/register-tag-parser! 'db/fn map->DBFn)
+;(defn tagged-fn [:datsync.server/db-fn])
+(cljs.reader/register-tag-parser! 'db/fn pr-str)
 
 (let [packer (sente-transit/get-flexi-packer :edn)
       {:keys [chsk ch-recv send-fn state]}
@@ -72,10 +75,7 @@
 (defn send-tx! [conn tx]
   (chsk-send! [:datsync.client/tx (datsync/datomic-tx conn tx)]))
 
-;; Wrap for logging, catching, etc:
-(defn event-msg-handler* [{:as ev-msg :keys [id ?data event]}]
-  (event-msg-handler ev-msg))
 
-(sente/start-chsk-router! ch-chsk event-msg-handler*)
+(sente/start-chsk-router! ch-chsk event-msg-handler)
 
 
