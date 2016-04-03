@@ -58,6 +58,9 @@
 
 ;; ## First up Sente, define send-tx!, and hook up message handler router
 
+(defrecord DBFn [lang params code])
+(cljs.reader/register-tag-parser! 'db/fn map->DBFn)
+
 (let [packer (sente-transit/get-flexi-packer :edn)
       {:keys [chsk ch-recv send-fn state]}
       (sente/make-channel-socket! "/chsk" {:type :auto :packer packer})]
