@@ -78,19 +78,19 @@
 
 ;; Setting up our two main datsync hooks
 
+;; General purpose transaction handler
 (defmethod event-msg-handler :datsync.client/tx
   [{:as app :keys [datomic]} {:as ev-msg :keys [id ?data]}]
   (let [tx-report @(datsync/transact-from-client! (:conn datomic) ?data)]
     (println "Do something with:" tx-report)))
 
+;; We handle the bootstrap message by simply sending back the bootstrap data
 (defmethod event-msg-handler :datsync.client/bootstrap
-  [{:as app :keys [datomic]} {:as ev-msg :keys [id ?data ?reply-fn send-fn]}]
-  (when ?reply-fn
-    (log/info "Sending bootstrap message")
-    (?reply-fn (datomic/bootstrap (d/db (:conn datomic))))))
+  [{:as app :keys [datomic ws-connection]} {:as ev-msg :keys [id ?data ?reply-fn send-fn]}]
+  (log/info "Sending bootstrap message")
+  (ws/send! ws-connection (datomic/bootstrap (d/db (:conn datomic)))))
 
 ;; Fallback handler; send message saying I don't know what you mean
-
 (defmethod event-msg-handler :default ; Fallback
   [app {:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
   (log/warn "Unhandled event:" (with-out-str (clojure.pprint/pprint event))))

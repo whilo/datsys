@@ -40,11 +40,11 @@
   (refresh :after 'user/run))
 
 (comment
+  ;; Run a customized system XXX
   (try
-    ;(stop)
     (run {:datomic {:seed-data "config/local/seed-data.edn"}})
     (catch Exception e (.printStackTrace e)))
   (stop)
-  (reset)
-  )
+  (reset))
+  
 
