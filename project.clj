@@ -12,6 +12,7 @@
                  [environ "1.0.1"]
                  [ch.qos.logback/logback-classic "1.1.3"]
                  [org.clojure/tools.logging "0.3.1"]
+                 [slingshot "0.12.2"]
 
                  [ring/ring-core "1.4.0"]
                  [ring/ring-defaults "0.1.5"]
@@ -28,12 +29,15 @@
                  [org.webjars/bootstrap "3.3.5"]
                  [posh "0.3.4.1"]
                  [org.clojure/core.match "0.3.0-alpha4"]
+
+
+                 [datascript "0.13.3"]
+                 [io.rkn/conformity "0.4.0"]
+
                  ;;For the free version of Datomic
                  [com.datomic/datomic-free "0.9.5350"
                   :exclusions [joda-time]]
 
-                 [datascript "0.13.3"]
-                 [io.rkn/conformity "0.4.0"]
                  ]
 
   :plugins [[lein-cljsbuild "1.1.0"]]

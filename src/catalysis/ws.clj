@@ -37,10 +37,11 @@
       :ch-recv nil :connected-uids nil :send-fn nil :ring-handlers nil)))
 
 (defn send! [ws-connection user-id event]
+  (log/info "sending message to client")
   ((:send-fn ws-connection) user-id event))
 
 (defn broadcast! [ws-connection event]
-  (let [uids (ws-connection :connected-uids )]
+  (let [uids (ws-connection :connected-uids)]
     (doseq [uid (:any @uids)] (send! ws-connection uid event))))
 
 (defn ring-handlers [ws-connection]

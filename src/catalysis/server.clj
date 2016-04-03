@@ -35,12 +35,8 @@
     (if server-stop
       component
       (let [component (component/stop component)
-
-            {:keys [ajax-post-fn ajax-get-or-ws-handshake-fn]}
-            (ws/ring-handlers ws-connection)
-
+            {:keys [ajax-post-fn ajax-get-or-ws-handshake-fn]} (ws/ring-handlers ws-connection)
             handler (handler ajax-post-fn ajax-get-or-ws-handshake-fn)
-
             server-stop (run-server (app handler) {:port (-> config :server :port)})]
         (log/info "HTTP server started")
         (assoc component :server-stop server-stop))))
