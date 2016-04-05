@@ -44,7 +44,8 @@
 ;; General purpose transaction handler
 (defmethod event-msg-handler :datsync.client/tx
   [{:as app :keys [datomic]} {:as event-msg :keys [id ?data]}]
-  (let [tx-report @(datsync/transact-from-client! (:conn datomic) ?data)]
+  (log/info ?data)
+  (let [tx-report @(d/transact (:conn datomic) (read-string ?data))]
     (println "Do something with:" tx-report)))
 
 ;; We handle the bootstrap message by simply sending back the bootstrap data
@@ -84,7 +85,7 @@
     (log/info "Starting websocket router and transaction listener")
     (let [sente-stop-fn (sente/start-chsk-router!
                           (:ch-recv ws-connection)
-                          ;(fn [event] (log/info "Just got event:" (with-out-str (clojure.pprint/pprint)))) 
+                          ;(fn [event] (log/info "Just got event:" (with-out-str (clojure.pprint/pprint))))
                           ;; There sould be a way of specifying app-wide middleware here
                           (partial event-msg-handler component))]
       ;; Start our transaction listener
@@ -108,7 +109,7 @@
 (comment
   (require 'user)
   (let [ws-connection (:ws-connection user/system)]
-    (send-tx!))) 
-  
+    (send-tx!)))
+
 
 

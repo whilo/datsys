@@ -7,8 +7,7 @@
               [datascript.core :as d]
               [catalysis.client.views :as views]
               [catalysis.client.db :as db]
-              [catalysis.client.ws :as ws]
-              [catalysis.client.handlers :as handlers]))
+              [catalysis.client.ws :as ws]))
 
 
 ;; Just hooking up view to conn
