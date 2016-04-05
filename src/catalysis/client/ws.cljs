@@ -9,10 +9,6 @@
 (declare send-tx!)
 (declare chsk-send!)
 
-(defn one-time-tx [conn]
-    (js/console.log "sending message")
-    (send-tx! conn [:datsync.client/tx {:db/id -4 :e/type :e.type/Category :e/name "Play" :e/description "Fun things"}]))
-
 ;; ## Top level event handlers
 
 ;; Dispatch on event-id
@@ -40,7 +36,7 @@
   [{:as ev-msg :keys [?data]}]
   (push-msg-handler ?data))
 
-(def msg-sent? (atom false))
+;(def msg-sent? (atom false))
 
 
 ;; ## Push message handlers
@@ -53,14 +49,14 @@
 (defmethod push-msg-handler :datsync.client/bootstrap
   [[_ tx-data]]
   ;; Possibly falg some state somewhere saying bootstrap has taken place?
-  (println "Recieved tx:" (first tx-data))
+  (println "Recieved bootstrap")
   ;(doseq [x-form (remove :db/id tx-data)]
     ;(println "    " x-form))
-  (datsync/apply-remote-tx! db/conn tx-data)
-  (if @msg-sent?
-    (js/console.log "message already sent")
-    (do (one-time-tx db/conn)
-      (swap! bootstrap-recv? true))))
+  (datsync/apply-remote-tx! db/conn tx-data))
+;  (if @msg-sent?
+;    (js/console.log "message already sent")
+;    (do (one-time-tx db/conn)
+;      (swap! bootstrap-recv? true))))
 
 ;; TODO Add any custom handlers here!
 
