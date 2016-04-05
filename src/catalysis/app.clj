@@ -44,8 +44,8 @@
 ;; General purpose transaction handler
 (defmethod event-msg-handler :datsync.client/tx
   [{:as app :keys [datomic]} {:as event-msg :keys [id ?data]}]
-  (log/info ?data)
-  (let [tx-report @(d/transact (:conn datomic) (read-string ?data))]
+  (log/info "tx recieved from client: " id)
+  (let [tx-report @(datsync/transact-from-client! (:conn datomic) ?data)]
     (println "Do something with:" tx-report)))
 
 ;; We handle the bootstrap message by simply sending back the bootstrap data

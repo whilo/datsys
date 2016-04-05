@@ -9,6 +9,9 @@
 (declare send-tx!)
 (declare chsk-send!)
 
+(defn one-time-tx [conn]
+    (js/console.log "sending message")
+    (send-tx! conn [:datsync.client/tx {:db/id -4 :e/type :e.type/Category :e/name "Play" :e/description "Fun things"}]))
 
 ;; ## Top level event handlers
 
@@ -37,21 +40,27 @@
   [{:as ev-msg :keys [?data]}]
   (push-msg-handler ?data))
 
+(def msg-sent? (atom false))
 
 
 ;; ## Push message handlers
 
 (defmethod push-msg-handler :datsync/tx-data
   [[_ tx-data]]
+  (js/console.log "tx-data recieved")
   (datsync/apply-remote-tx! db/conn tx-data))
 
 (defmethod push-msg-handler :datsync.client/bootstrap
   [[_ tx-data]]
   ;; Possibly falg some state somewhere saying bootstrap has taken place?
-  (println "Recieved tx")
+  (println "Recieved tx:" (first tx-data))
   ;(doseq [x-form (remove :db/id tx-data)]
     ;(println "    " x-form))
-  (datsync/apply-remote-tx! db/conn tx-data))
+  (datsync/apply-remote-tx! db/conn tx-data)
+  (if @msg-sent?
+    (js/console.log "message already sent")
+    (do (one-time-tx db/conn)
+      (swap! bootstrap-recv? true))))
 
 ;; TODO Add any custom handlers here!
 
@@ -73,7 +82,9 @@
   (def chsk-state state))
 
 (defn send-tx! [conn tx]
-  (chsk-send! [:datsync.client/tx (datsync/datomic-tx conn tx)]))
+  (js/console.log "about to send tx!")
+  (chsk-send! [:datsync.client/tx (datsync/datomic-tx conn tx)])
+  (js/console.log "transaction sent"))
 
 
 (sente/start-chsk-router! ch-chsk event-msg-handler)
