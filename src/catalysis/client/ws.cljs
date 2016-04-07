@@ -36,8 +36,6 @@
   [{:as ev-msg :keys [?data]}]
   (push-msg-handler ?data))
 
-;(def msg-sent? (atom false))
-
 
 ;; ## Push message handlers
 
@@ -48,23 +46,18 @@
 
 (defmethod push-msg-handler :datsync.client/bootstrap
   [[_ tx-data]]
-  ;; Possibly falg some state somewhere saying bootstrap has taken place?
-  (println "Recieved bootstrap")
-  ;(doseq [x-form (remove :db/id tx-data)]
-    ;(println "    " x-form))
+  ;; Possibly flag some state somewhere saying bootstrap has taken place?
+  (js/console.log "Recieved bootstrap")
   (datsync/apply-remote-tx! db/conn tx-data))
-;  (if @msg-sent?
-;    (js/console.log "message already sent")
-;    (do (one-time-tx db/conn)
-;      (swap! bootstrap-recv? true))))
 
 ;; TODO Add any custom handlers here!
 
 
 
 
-;; ## First up Sente, define send-tx!, and hook up message handler router
+;; ## Set up Sente, define send-tx!, and hook up message handler router
 
+;; This is a hack to get the db/fn objects to not break on data load
 (defrecord DBFn [lang params code])
 ;(defn tagged-fn [:datsync.server/db-fn])
 (cljs.reader/register-tag-parser! 'db/fn pr-str)
@@ -78,11 +71,9 @@
   (def chsk-state state))
 
 (defn send-tx! [conn tx]
-  (js/console.log "about to send tx!")
+  (js/console.log "Sending tx to server")
   (chsk-send! [:datsync.client/tx (datsync/datomic-tx conn tx)])
-  (js/console.log "transaction sent"))
+  (js/console.log "Transaction sent"))
 
-
-(sente/start-chsk-router! ch-chsk event-msg-handler)
 
 

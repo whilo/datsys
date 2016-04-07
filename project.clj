@@ -28,8 +28,8 @@
                  [re-frame "0.5.0"]
                  [org.webjars/bootstrap "3.3.5"]
                  [posh "0.3.5"]
+                 [re-com "0.8.0"]
                  [org.clojure/core.match "0.3.0-alpha4"]
-
 
                  [datascript "0.13.3"]
                  [io.rkn/conformity "0.4.0"]
