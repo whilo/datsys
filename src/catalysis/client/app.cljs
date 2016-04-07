@@ -8,7 +8,7 @@
               [catalysis.client.views :as views]
               [catalysis.client.db :as db]
               [catalysis.client.ws :as ws]))
-             
+
 
 ;; Just hooking up view to conn
 
