@@ -3,7 +3,19 @@
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require [posh.core :as posh]
             [reagent.core :as r]
-            [datascript.core :as d]))
+            [re-frame.core :as re-frame]
+            [re-com.core :as re-com]
+            [datsync.client.core :as datsync]
+            [posh.core :as posh]
+            [datascript.core :as d]
+            [goog.date.Date]
+            [cljs-time.core :as cljs-time]
+            [cljs-time.format]
+            [cljs-time.coerce]
+            [cljs.pprint :as pp]
+            [cljs.core.match :as match :refer-macros [match]]
+            [markdown.core :as md]))
+
 
 
 ;; ## Overview
@@ -38,22 +50,23 @@
 (def my-vbox-defaults
   {:style {:flex-flow "column wrap"}})
 
-(defn vbox
-  [& {:as kvs}]
-  (->> kvs
-       (u/deep-merge {:coll-merge (comp vec concat)} my-vbox-defaults)
-       seq
-       flatten
-       (apply re-com/v-box)))
+;; Might be nice to override these things
+;(defn vbox
+  ;[& {:as kvs}]
+  ;(->> kvs
+       ;(u/deep-merge {:coll-merge (comp vec concat)} my-vbox-defaults)
+       ;seq
+       ;flatten
+       ;(apply re-com/v-box)))
 
-(defn hbox
-  [& {:as kvs}]
-  (->> kvs
-       (u/deep-merge {:coll-merge (comp vec concat)} my-vbox-defaults)
-       (u/deep-merge {:coll-merge (comp vec concat)} my-vbox-defaults)
-       seq
-       flatten
-       (apply re-com/h-box)))
+;(defn hbox
+  ;[& {:as kvs}]
+  ;(->> kvs
+       ;(u/deep-merge {:coll-merge (comp vec concat)} my-vbox-defaults)
+       ;(u/deep-merge {:coll-merge (comp vec concat)} my-vbox-defaults)
+       ;seq
+       ;flatten
+       ;(apply re-com/h-box)))
 
 
 (defn debug-str
