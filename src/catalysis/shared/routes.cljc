@@ -1,4 +1,4 @@
-(ns catalysis.client.routes
+(ns catalysis.shared.routes
   (:require [bidi.bidi :as bidi]))
 
 

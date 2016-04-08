@@ -31,9 +31,9 @@
 
 (defn schema-rx
   [conn [_]]
-  (posh/pull conn
-             '[:find [(pull ?e [*]) ...]
-               :where [?e :db/ident]]))
+  (posh/q conn
+          '[:find [(pull ?e [*]) ...]
+            :where [?e :db/ident]]))
 
 ;; Not sure if it's permissable for subscription functions not to take args.
 ;; Or whether we really even want to use subscription functions...
@@ -46,7 +46,9 @@
   [conn [type-ident]]
   (posh/q conn
           '[:find [(pull ?e [*]) ...]
-            :where [?e :e/type type-ident]]))
+            :in $ ?type-ident
+            :where [?e :e/type ?type-ident]]
+          type-ident))
 
 (defn todos-rx
   [conn]
@@ -66,8 +68,8 @@
 ;; These could easily be extracted into proper reagent subscriptions
 
 (defn todos-view [conn]
-  [re-com/b-box
-   :children (for [todo @(todos-rx)]
+  [re-com/v-box
+   :children (for [todo @(todos-rx conn)]
                ;; XXX This is rather stupid; we need to entity-view to take a full pull, not just the eid.
                ;; This should make things a lot more performant; see the relevant code in datview
                ^{:key (:db/id todo)}
@@ -79,5 +81,5 @@
               [:p "Congrats! You've got a catalysis app running :-)"]
               [todos-view conn]]])
 
-   
+
 

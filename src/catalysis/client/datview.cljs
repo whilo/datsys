@@ -2,6 +2,8 @@
   "# Datview"
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require [posh.core :as posh]
+            [catalysis.client.router :as router]
+            [catalysis.client.ws :as ws]
             [reagent.core :as r]
             [re-frame.core :as re-frame]
             [re-com.core :as re-com]
@@ -14,7 +16,7 @@
             [cljs-time.coerce]
             [cljs.pprint :as pp]
             [cljs.core.match :as match :refer-macros [match]]
-            [markdown.core :as md]))
+            #_[markdown.core :as md]))
 
 
 
@@ -341,7 +343,7 @@
 
 
 ;; For now...
-(def sortable (constantly false))
+(def sortable? (constantly false))
 
 ;; 
 (defn attribute-view
@@ -586,11 +588,11 @@
 
 
 ;; Simple md (markdown) component; Not sure if we really need to include this in datview or not...
-(defn md
-  [md-string]
-  [re-com/v-box
-   :children
-   [[:div {:dangerouslySetInnerHTML {:__html (md/md->html md-string)}}]]])
+;(defn md
+  ;[md-string]
+  ;[re-com/v-box
+   ;:children
+   ;[[:div {:dangerouslySetInnerHTML {:__html (md/md->html md-string)}}]]])
 
 
 ;; ### Datetimes...
@@ -664,7 +666,7 @@
      (match [attr-entity]
        ;; We have an isComponent ref; do nested form
        [{:db/valueType {:db/ident :db.type/ref} :db/isComponent true}]
-       [edit-entity-fieldset conn value])
+       [edit-entity-fieldset conn value]
        ;; Non component entity; Do dropdown select...
        [{:db/valueType {:db/ident :db.type/ref}}]
        [select-entity-input conn eid attr-ident value]

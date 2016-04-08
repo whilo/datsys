@@ -24,6 +24,9 @@
                  [com.cognitect/transit-clj "0.8.285" :exclusions [commons-codec]]
                  [com.cognitect/transit-cljs "0.8.225"]
 
+                 [com.lucasbradstreet/cljs-uuid-utils "1.0.2"]
+                 [testdouble/clojurescript.csv "0.2.0"]
+
                  [reagent "0.5.1"]
                  [re-frame "0.5.0"]
                  [org.webjars/bootstrap "3.3.5"]

@@ -12,7 +12,6 @@
             [reagent.core :as r]
             [re-com.core :as re-com]
             [datsync.client.core :as datsync]
-            [catalysis.shared.utils :as utils]
             [posh.core :as posh]
             [datascript.core :as d]
             [goog.date.Date]
