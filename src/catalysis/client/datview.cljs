@@ -879,7 +879,7 @@
   [conn eid children]
   [re-com/v-box
    :style {:border "3px solid grey"
-           :background styles/light-grey
+           ;:background styles/light-grey ;; Should either put styles in the db, or pass as args...
            :flex-flow "column wrap"
            :padding "10px"
            :margin "10px"}
