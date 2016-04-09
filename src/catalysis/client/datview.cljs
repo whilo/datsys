@@ -349,8 +349,8 @@
 (defn attribute-view
   [conn attr-ident values]
   ;; This is hacky, take out for datview and query...
-  (let [collapsable? true ;; Need to get this to dispatch... XXX
-        collapse-attribute? (r/atom true)
+  (let [collapsable? false ;; Need to get this to dispatch... XXX Or should maybe just default to true for all non-component refs
+        collapse-attribute? (r/atom false)
         values-rx (if (sortable? conn attr-ident)
                     (reaction (map :db/id (sort-by :e/order @(pull-many-rx conn '[:db/id :e/order] values))))
                     (reaction (sort values)))]
@@ -358,18 +358,16 @@
       [re-com/v-box
        :padding "8px"
        :gap "8px"
-       :children
-       [[re-com/h-box
-         :children
-         [(when collapsable?
-            [collapse-button collapse-attribute?])
-          [label-view conn attr-ident]]]
-        (if (and collapsable? @collapse-attribute?)
-          ^{:key 1}
-          [collapse-summary conn attr-ident values]
-          (for [value @values]
-            ^{:key (hash {:component :attribute-view :value value})}
-            [value-view conn attr-ident value]))]])))
+       :children [[re-com/h-box
+                   :children [(when collapsable?
+                                [collapse-button collapse-attribute?])
+                              [label-view conn attr-ident]]]
+                  (if (and collapsable? @collapse-attribute?)
+                    ^{:key 1}
+                    [collapse-summary conn attr-ident values]
+                    (for [value @values-rx]
+                      ^{:key (hash {:component :attribute-view :value value})}
+                      [value-view conn attr-ident value]))]])))
 
 
 ;; The following several functions are for splitting up attributes; this approach feels rather flawed.
