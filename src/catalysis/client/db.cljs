@@ -10,9 +10,8 @@
 
 (posh/posh! conn)
 
-;; crickets; seems like we're using nss as ss component
-;; kind of anti pattern; maybe it will make more sense if we also
-;; put our posh reactions/subscriptions here
+;; crickets; this is mostly just state management right now, which is icky; kind of anti-pattern
+;; may make more sense to keep subscriptions or posh functions here
 
 
 

@@ -30,7 +30,7 @@
      :db/doc         "A generic, polymorhpic description attribute"
      :db.install/_attribute :db.part/db}
  
-    ;;; May make this an enum ref for efficiency, but for now, stick with keywords for flexibility
+    ;; XXX Need to make this a ref instead of a keyword, but that will end up being a mess of rewriting
     {:db/id          #db/id[:db.part/db]
      :db/ident       :e/type
      :db/valueType   :db.type/keyword

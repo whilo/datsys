@@ -76,4 +76,8 @@
   (js/console.log "Transaction sent"))
 
 
+;; Hook up the message handler router
+(sente/start-chsk-router! ch-chsk event-msg-handler)
+
+
 

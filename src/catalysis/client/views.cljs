@@ -76,7 +76,9 @@
                [datview/entity-view-with-controls conn (:db/id todo)])])
 
 (defn main [conn]
+  (println "Rendering main function")
   [re-com/v-box
+   :gap "15px"
    :children [[:h1 "Catalysis"]
               [:p "Congrats! You've got a catalysis app running :-)"]
               [todos-view conn]]])
