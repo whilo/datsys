@@ -1,9 +1,10 @@
-(ns catalysis.client.datview
-  "# Datview"
+(ns catalysis.client.datview.nouveau
+  "# Datview nouveau"
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require [posh.core :as posh]
             [catalysis.client.router :as router]
             [catalysis.client.ws :as ws]
+            [catalysis.shared.utils :as utils]
             [reagent.core :as r]
             [re-frame.core :as re-frame]
             [re-com.core :as re-com]
@@ -23,9 +24,11 @@
 ;; ## Overview
 
 ;; What if you could write views which compute themselves based on the data you pass in?
-;; Datomic's rich and flexilible data-driven schema make it possible to do this very naturally.
 
-;; However, there are challenges to this... XXX finish
+;; Datview is a set of tools for doing this, and offering utility functions for translating Datomic data into
+;; hiccup, at anywhere from a level expected of a scaffolding system (without the code to maintain) to that of
+;; a helper lib of useful pieces.
+;; The goal of datview is to cover this all with a very data driven spec (specified through schema)
 
 
 ;; ## First some helpers
@@ -103,112 +106,30 @@
 
 ;; ## Datalog rules
 
-;; These definitely need some cleaup... Not sure which are being used and which aren't.
-;; And defintely would like to not have to refer to entity ids all the time.
+;; Need to look more closely at which of these we actually need; We may not need many at all
 
-(def rules
-  ;; Cardinality getters
-  '[[(attr-card ?attr ?card)
-     [?attr :db/cardinality ?card]]
-    [(attr-ident-card ?attr-ident ?card)
-     [?attr :db/ident ?attr-ident]
-     (attr-card ?attr ?card)]
-    [(attr-ident-card-ident ?attr-ident ?card-ident)
-     [?card :db/ident ?card-ident]
-     (attr-ident-card ?attr-ident ?card)]
-    [(attr-card-ident ?attr ?card-ident)
-     [?card :db/ident ?card-ident]
-     (attr-card ?attr-ident ?card)]
-    ;; Component getters
-    [(attr-iscomp? ?attr ?comp?)
-     [(get-else $ ?attr :db/isComponent false) ?comp?]]
-    [(attr-ident-iscomp? ?attr-ident ?comp?)
-     [?attr :db/ident ?attr-ident]
-     (attr-iscomp? ?attr ?comp?)]
-    ;; Uhh... and more cause the above doesn't always work...
-    [(attr-iscomp ?attr)
-     [?attr :db/isComponent true]]
-    [(attr-ident-iscomp ?attr-ident)
-     [?attr :db/ident ?attr-ident]
-     [attr-iscomp ?attr]]
-    [(attr-isnotcomp ?attr)
-     [(get-else $ ?attr :db/isComponent false) ?iscomp?]
-     [(not= ?iscomp true)]]
-    [(attr-ident-isnotcomp ?attr-ident)
-     [?attr :db/ident ?attr-ident]
-     [attr-isnotcomp ?attr]]
-    ;; Value type
-    [(attr-value-type ?attr ?value-type)
-     [?attr :db/valueType ?value-type]]
-    [(attr-ident-value-type ?attr-ident ?value-type)
-     [?attr :db/ident ?attr-ident]
-     [?attr :db/valueType ?value-type]]
-    [(attr-value-type-ident ?attr ?value-type-ident)
-     [?value-type :db/ident ?value-type-ident]
-     [?attr :db/valueType ?attr-ident]]
-    [(attr-ident-value-type-ident ?attr-ident ?value-type-ident)
-     (attr-ident-value-type ?attr-ident ?value-type)
-     [?value-type :db/ident ?value-type-ident]]
 
-    [(eid-attr-idents ?eid ?attr-ident)
-     [?eid ?attr-ident]]
 
-    [(eid-attr-idents ?eid ?attr-ident)
-     [?eid :e/type ?type-ident]
-     (type-ident-attr-ident ?type-ident ?attr-ident)]
+;; ## Pull view
 
-    [(type-ident-attr-ident ?type-ident ?attr-ident)
-     [?type :db/ident ?type-ident]
-     (type-attr-ident ?type ?attr-ident)]
-    [(type-attr-ident ?type ?attr-ident)
-     [?attr :db/ident ?attr-ident]
-     (type-attr ?type ?attr)]
-    [(type-attr ?type ?attr)
-     [?type :e.type/attributes ?attr]]
-    [(type-attr ?type ?attr)
-     [?type :e.type/isa ?type-ancestor]
-     [?type-ancestor :e.type/attributes ?attr]]
+;; This is a new idea... originally, I was basing things on the entity-view component.
+;; But I'm realizing this is bad for the performance story.
+;; What we really need is a function that takes data from a pull, and renders all present relatonships.
+;; This is I think the best way to minimize the amount of querying needed to retrieve data for some entity..
 
-    ;; Should build a rule-doc system for datalog rules!
-    ^{:doc "Join attr-ident to type-idents consistent with :attribute.ref/types, given any :e/isa relationships."}
-    [(attr-ident-type-ident ?attr-ident ?type-ident)
-     [?attr :db/ident ?attr-ident]
-     (attr-type-ident ?attr ?type-ident)]
 
-    ^{:doc "Join attr ids to type idents consistent with :attribute.ref/types, given any :e/isa relationships."}
-    ;; First, our direct assignment
-    [(attr-type-ident ?attr ?type-ident)
-     [?type :db/ident ?type-ident]
-     (attr-type ?attr ?type)]
+(declare pull-view)
 
-    ^{:doc "Join attr id to type id consistent with :attribute.ref/types, given any :e/isa relationships."}
-    ;; First, our direct assignment
-    [(attr-type ?attr ?type)
-     [?attr :attribute.ref/types ?type]]
-    ;; Next, our recursion
-    ^{:doc "Recursive rule for attr-type-ident"}
-    [(attr-type ?attr ?type)
-     [?type :e.type/isa ?abstract-type]
-     (attr-type ?attr ?abstract-type)]
-
-    ^{:doc "Abstract isa relationship"}
-    [(isa ?type1 ?type2)
-     [?type1 :e.type/isa ?type2]]
-
-    ;; Is it possible to come up with
-
-          ;:where [?attr :db/ident ?attr-ident]
-                 ;[?attr :attribute.ref/types ?type]
-                 ;[?type :db/ident ?type-ident]]
-
-    ;; More?
-    ])
+(defn pull-view
+  "Specify a db connection and a pull-data atom or value for which data is to be rendered. Three argument
+  function call takes pull-pattern and eid and runs posh pull for you."
+  ([conn pull-data] 
+   (let [pull-data (deref-or-value pull-data)])))
 
 
 ;; ## Entity views
 
-;; Everything is based around the entity-view component.
-;; Given a connection and an eid, it produces a pull view for that eid.
+;; This needs to be rewritten in terms of pull view (using *, I guess)
 
 (declare entity-view)
 

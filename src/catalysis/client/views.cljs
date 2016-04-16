@@ -1,7 +1,7 @@
 (ns catalysis.client.views
   "# Views"
   (:require [catalysis.client.ws :as ws]
-            [catalysis.client.datview :as datview]
+            [catalysis.datview :as datview]
             [posh.core :as posh]
             [re-com.core :as re-com]
             [re-frame.core :as re-frame] 

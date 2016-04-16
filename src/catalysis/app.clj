@@ -5,7 +5,7 @@
             [catalysis.datomic :as datomic]
             [catalysis.ws :as ws]
             [taoensso.sente :as sente]
-            [datsync.server.core :as datsync]
+            [datsync.server :as datsync]
             [datomic.api :as d]))
 
 
@@ -45,7 +45,7 @@
 (defmethod event-msg-handler :datsync.client/tx
   [{:as app :keys [datomic]} {:as event-msg :keys [id ?data]}]
   (log/info "tx recieved from client: " id)
-  (let [tx-report @(datsync/transact-from-client! (:conn datomic) ?data)]
+  (let [tx-report @(datsync/apply-remote-tx! (:conn datomic) ?data)]
     (println "Do something with:" tx-report)))
 
 ;; We handle the bootstrap message by simply sending back the bootstrap data

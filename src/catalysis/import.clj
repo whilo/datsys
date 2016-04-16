@@ -3,7 +3,6 @@
             [datomic.api :as d]
             [catalysis.ws :as ws]
             [clojure.java.io :as io]
-            [datsync.server.core :as datsync]
             [com.stuartsierra.component :as component]
             [catalysis.app :as app]))
 
