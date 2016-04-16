@@ -34,6 +34,8 @@
                  [re-com "0.8.0"]
                  [org.clojure/core.match "0.3.0-alpha4"]
 
+                 [datsync "0.0.1-SNAPSHOT"]
+
                  [datascript "0.13.3"]
                  [io.rkn/conformity "0.4.0"]
 
