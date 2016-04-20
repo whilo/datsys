@@ -1,5 +1,5 @@
 (ns catalysis.client.db
-  (:require [datsync.client.core :as datsync]
+  (:require [datsync.client :as datsync]
             [datascript.core :as d]
             [posh.core :as posh]))
 

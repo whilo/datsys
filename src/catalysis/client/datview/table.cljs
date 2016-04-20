@@ -11,7 +11,7 @@
             [cljs-uuid-utils.core :as uuid]
             [reagent.core :as r]
             [re-com.core :as re-com]
-            [datsync.client.core :as datsync]
+            [datsync.client :as datsync]
             [posh.core :as posh]
             [datascript.core :as d]
             [goog.date.Date]

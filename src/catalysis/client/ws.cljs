@@ -1,7 +1,7 @@
 (ns catalysis.client.ws
   (:require [taoensso.sente :as sente]
             [catalysis.client.db :as db]
-            [datsync.client.core :as datsync]
+            [datsync.client :as datsync]
             [taoensso.sente.packers.transit :as sente-transit]))
 
 

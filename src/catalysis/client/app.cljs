@@ -3,7 +3,7 @@
                      [reagent.ratom :refer [reaction]])
     (:require [reagent.core :as reagent]
               [posh.core :as posh]
-              [datsync.client.core :as datsync]
+              [datsync.client :as datsync]
               [datascript.core :as d]
               [catalysis.client.views :as views]
               [catalysis.client.db :as db]
