@@ -16,7 +16,7 @@
   {:port                   {:path [:server :port]
                             :parse ?->int
                             ;; XXX Just an idea sketch; can construct generators
-                            :generator {:init   8080
+                            :generator {:init   2358
                                         :gen-fn (fn [last-value] (inc last-value))
                                         :test-fn (fn [value] "Test if port is bound")}}
    :datomic-url            {:path [:datomic :url]}
@@ -24,7 +24,7 @@
    :datomic-reset-schema {:path [:datomic :reset-db] :parse ?->boolean}})
 
 (def defaults
-  {:server {:port 8089}
+  {:server {:port 2358}
    :datomic {:url "datomic:mem://base"}})
 
 

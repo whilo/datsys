@@ -34,6 +34,9 @@
                  [re-com "0.8.0"]
                  [org.clojure/core.match "0.3.0-alpha4"]
 
+                 [prismatic/schema "1.1.1"]
+                 [org.clojure/core.typed "0.3.23"]
+
                  [datsync "0.0.1-SNAPSHOT"]
 
                  [datascript "0.13.3"]
@@ -69,32 +72,25 @@
              {:output-to "resources/public/js/app.js"
               :output-dir "dev-resources/public/js/out"}}}}
 
-  :profiles {:dev-config {}
+  :figwheel {:server-port 3448
+             :repl true}
 
+  :profiles {:dev-config {}
              :dev [:dev-config
                    {:dependencies [[org.clojure/tools.namespace "0.2.7"]
                                    [com.cemerick/pomegranate "0.3.0"]
                                    [figwheel "0.3.9"]]
-
                     :plugins [[lein-figwheel "0.3.9" :exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]]
                               [lein-environ "1.0.1"]]
-
                     :source-paths ["dev"]
-                    :resource-paths ^:replace
-                    ["resources" "dev-resources" "resources-index/dev"]
-
+                    :resource-paths ^:replace ["resources" "dev-resources" "resources-index/dev"]
                     :cljsbuild
                     {:builds
                      {:client {:source-paths ["dev"]
                                :compiler
                                {:optimizations :none
-                                :source-map true}}}}
-
-                    :figwheel {:http-server-root "public"
-                               :port 3449
-                               :repl false
-                               :css-dirs ["resources/public/css"]}}]
-
+                                :source-map true}}}}}]
+                   
              :prod {:cljsbuild
                     {:builds
                      {:client {:compiler

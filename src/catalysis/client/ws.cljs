@@ -18,13 +18,18 @@
   [{:as ev-msg :keys [event]}]
   (js/console.log "Unhandled event: %s" (pr-str event)))
 
+;; Total fucking dev hack; Seems :first-open? is malfunctioning? Have to do with figwheel?
+;; Have to figure this out... This is lame
+(defonce opened? (atom false))
 
 (defmethod event-msg-handler :chsk/state
   [{:as ev-msg :keys [?data]}]
-  (if (:first-open? ?data)
+  (js/console.log "chsk/state data:" (pr-str ?data))
+  (if (and (:first-open? ?data) (not @opened?))
     (do (js/console.log "Channel socket successfully established!")
         (js/console.log "Sending bootstrap request")
-        (chsk-send! [:datsync.client/bootstrap nil]))
+        (chsk-send! [:datsync.client/bootstrap nil])
+        (reset! opened? true))
     (js/console.log "Channel socket state change: %s" (pr-str ?data))))
 
 ;; Set up push message handler

@@ -2,6 +2,7 @@
   "# Views"
   (:require [catalysis.client.ws :as ws]
             [catalysis.client.datview :as datview]
+            [catalysis.client.datview.nouveau :as nouveau]
             [posh.core :as posh]
             [re-com.core :as re-com]
             [re-frame.core :as re-frame] 
@@ -75,13 +76,44 @@
                ^{:key (:db/id todo)}
                [datview/entity-view-with-controls conn (:db/id todo)])])
 
+
+(defn type-instance-eids-rx
+  [conn type-ident]
+  (posh/q conn '[:find [?e ...] :in $ ?type-ident :where [?e :e/type ?type-ident]] type-ident))
+
+
+(def todo-view
+  [:e/name :e/description {:e/category [:e/name]} :e/tags])
+
+(defn todos-view-nouveau [conn]
+  (let [todo-eids @(type-instance-eids-rx conn :e.type/Todo)]
+    [re-com/v-box
+     :children [[:h2 "Todos"]
+                (for [todo todo-eids]
+                  ;; XXX This is rather stupid; we need to entity-view to take a full pull, not just the eid.
+                  ;; This should make things a lot more performant; see the relevant code in datview
+                  ^{:key todo}
+                  [nouveau/pull-view conn todo-view todo])]]))
+
+;;; ## Hacking on dynamatch
+
+;(defmacro dynamatch)
+
+
+;(dynamatch dynamatch-fn
+  ;([{:this/key the-key}] "The key was matched")
+  ;[other] (str "The other:" other))
+
+
 (defn main [conn]
   (println "Rendering main function")
   [re-com/v-box
    :gap "15px"
    :children [[:h1 "Catalysis"]
               [:p "Congrats! You've got a catalysis app running :-)"]
-              [todos-view conn]]])
+              ;[datview/debug "Here's a dynamatch example:"
+               ;(dynamatch-fn {:this/key "this val"})]
+              [todos-view-nouveau conn]]])
 
 
 
