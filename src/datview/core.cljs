@@ -1,11 +1,10 @@
-(ns catalysis.client.datview.nouveau
-  "# Datview nouveau"
+(ns datview.core
+  "# Datview"
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require [posh.core :as posh]
             [schema.core :as s
              :include-macros true]
             [catalysis.client.router :as router]
-            ;[catalysis.client.ws :as ws]
             [catalysis.shared.utils :as utils]
             [reagent.core :as r]
             [reagent.ratom :as ratom]
@@ -22,21 +21,10 @@
             [cljs.core.match :as match :refer-macros [match]]
             #_[markdown.core :as md]))
 
-
-;; Websockets has to be based on a protocol or something
-;; That way we can abstract the communication protocol
-;; Or should we just use lamina
-
 (enable-console-print!)
 
-;; db
 
-;; # Note on this namespace!
-
-;; This is really just a fork of the DatView namepsace, which has been separated out to work on a smarter
-;; approach to the performance issues associated with the initial implementation of datview.
-;; Once things are working here, we'll move it all over to datview and eventaully pull out as a library.
-
+;; This should become the future README of Datview...
 
 
 ;; ## Overview
@@ -75,19 +63,7 @@
 ;;                        '...}])
 
 
-     ;(def todo-view
-       ;^{:attributes {:e/tags {:style small-fonts-bold :summarize tag-name-fn}
-                      ;:e/description {:style small-fonts}
-                      ;:e/category {:style small-fonts-bold}
-                      ;:todo/hours {:wrapper todo-hours-with-summary}}
-         ;:wrapper [lined-box]}
-       ;[:e/name :e/category :e/tags :e/description
-        ;;; Here we have some reference attributes
-        ;{:todo/time-entries time-entry-view}
-        ;{:todo/subtasks ^{:note "Here merge into the attributes passed down recursively"}
-                        ;'...}])
-
-;; Functions (components) like `pull-view` are wired together into a recursive tree, based on various entry points.
+;; Functions (components) like `pull-view`, `attr-view` and `value-view` are wired together into a recursive tree, based on various entry points.
 ;; Each one of these entry points is described in the structure of this pull metadata
 ;; Thus everything is perfectly composable, because everything is just data
 ;; We can override things so that when we push down into some particular part of a pull expression, the corresponding components will be rendered exactly as you wish :-)

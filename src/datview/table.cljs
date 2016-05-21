@@ -1,10 +1,14 @@
-(ns catalysis.client.views.table
+(ns datview.table
   (:require-macros [reagent.ratom :refer [reaction]]
                    [cljs.core.async.macros :refer [go go-loop]])
+  ;; Need to abstract the ws
   (:require [catalysis.client.ws :as ws]
+            ;; Router should probably just come into datview
             [catalysis.client.router :as router]
+            ;; Settings too...
             [catalysis.client.settings :as settings]
-            [catalysis.client.datview :as datview]
+            [datview.core :as datview]
+            [datview.old :as old]
             [testdouble.cljs.csv :as csv]
             ;; Couldn't get this to work, but would be nice to try again
             ;[cljsjs.papaparse :as csv]
@@ -22,6 +26,10 @@
             [cljs.pprint :as pp]
             [cljs.core.match :as match :refer-macros [match]]
             [cljs.core.async :as async]))
+
+;; This namespace has to be completely rewritten in terms of the new datview; Currently in terms of old.
+;; Though this was actually part of the inspiration for old so hopefully it won't be too bad...
+
 
 ;; ## Table views
 
@@ -192,7 +200,7 @@
     (fn [_ type-entity]
       [re-com/h-box
        :gap "3px"
-       :children [[datview/collapse-button
+       :children [[old/collapse-button
                    @unfolded?
                    (fn [] (d/transact! conn [[(if @unfolded? :db/retract :db/add)
                                               [:db/ident :table.view/column-selector]
@@ -219,7 +227,7 @@
                               :model checked?
                               :on-change (fn [checked-now?]
                                            (d/transact! conn [[(if checked-now? :db/add :db/retract) [:db/ident :table.view/column-selector] :table.view.column/attributes (:db/id attr-entity)]]))]
-                             [re-com/label :label (datview/entity-name attr-entity)]]]
+                             [re-com/label :label (old/entity-name attr-entity)]]]
                  (when @checked?
                    ;; Present types for possible expansion
                    [re-com/v-box
@@ -264,7 +272,7 @@
     (fn [_ base-type]
       [re-com/v-box
        :children [[re-com/h-box
-                   :children [[datview/collapse-button collapse?]
+                   :children [[old/collapse-button collapse?]
                               [re-com/title :level :level3 :label "Table column selector:"]]]
                   (when-not @collapse?
                     [re-com/border
@@ -347,7 +355,7 @@
 
 (defn table-view
   [conn eids base-type]
-  (let [conn-reaction (datview/as-reaction conn)
+  (let [conn-reaction (old/as-reaction conn)
         query-context (type-query-reaction conn-reaction base-type)]
         ;query-results (evaluate-query conn query-context eids)]
     (fn [_ eids]

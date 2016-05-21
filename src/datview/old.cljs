@@ -1,4 +1,4 @@
-(ns catalysis.client.datview
+(ns datview.old
   "# Datview"
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require [posh.core :as posh]

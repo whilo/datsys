@@ -1,8 +1,7 @@
 (ns catalysis.client.views
   "# Views"
   (:require [catalysis.client.ws :as ws]
-            [catalysis.client.datview :as datview]
-            [catalysis.client.datview.nouveau :as nouveau]
+            [datview.core :as datview]
             [posh.core :as posh]
             [re-com.core :as re-com]
             [re-frame.core :as re-frame] 
@@ -11,109 +10,52 @@
             [cljs.reader :as reader]))
 
 
-;; ## The core views namespace...
+;; The core views namespace...
 
-;; At present, this template (not yet in the Leiningen sense...) starts you off with a simple todo app to see
-;; how data flows through the system and how all the various peices fit together
-
-
-
-;; ## Reactive queries (subscriptions)
-
-;; We define the flow of data through our application via posh.
-;; Posh is: Reactive materialized views (in the database sense, not the MVC sense) as DataScript queries and
-;; db modifiers such as `q`, `pull`, (and coming soon `filter` and `with`).
-;; (For more info: <https://github.com/mpdairy/posh>).
-
-;; Here we show some general purpose, high-level reactions which we'll be using in our app.
-
-;; We define schema as anything that has an ident;
-;; We can pass this around to more efficiently.
-
-(defn schema-rx
-  [conn [_]]
-  (posh/q conn
-          '[:find [(pull ?e [*]) ...]
-            :where [?e :db/ident]]))
-
-;; Not sure if it's permissable for subscription functions not to take args.
-;; Or whether we really even want to use subscription functions...
-;; I do like the indirection.
-;; And it's possible it will help with issues like these where we want to keep around these reactive queries.
-
-;(re-frame/register-sub :schema schema-rx)
-
-(defn type-instances-rx
-  [conn [type-ident]]
-  (posh/q conn
-          '[:find [(pull ?e [*]) ...]
-            :in $ ?type-ident
-            :where [?e :e/type ?type-ident]]
-          type-ident))
-
-(defn todos-rx
-  [conn]
-  (type-instances-rx conn [:e.type/Todo]))
-
-;(re-frame/register-sub :type-instances type-instances-rx)
+;; We'll be looking at how you might set up a simple Todo application using Datsync, DataScript, Posh and
+;; Datview.
 
 
-;; We may have to build our own notion of subscriptions... I'm not seeing the re-frame subscriptions working
-;; well, because they defined based on a predefined var :-(
-;; This should really be modular; or there should be an init fn.
-;; Still bad for moving towards SS Component or something similar for state management.
+;; ## Everything's data
 
+;; Datview translates declarative queries into virtual dom (via hiccup).
+;; These declarative queries have embedded in them not just the "data" query (as we typically think of it in
+;; database terms), but also a description of how to translate the query results into hiccup.
+;; These descriptions are stored as metadata on DataScript query data structures.
 
-;; ## Views (in the MVC sense)
+;; The simplest of examples:
 
-;; These could easily be extracted into proper reagent subscriptions
+(def todo-view
+  [:e/name :e/description {:e/category [:e/name]} :e/tags])
 
-(defn todos-view [conn]
-  [re-com/v-box
-   :children (for [todo @(todos-rx conn)]
-               ;; XXX This is rather stupid; we need to entity-view to take a full pull, not just the eid.
-               ;; This should make things a lot more performant; see the relevant code in datview
-               ^{:key (:db/id todo)}
-               [datview/entity-view-with-controls conn (:db/id todo)])])
+;; The above only describes how we'd render a single todo item.
+;; But we'll want to render a collection.
 
+;; (Soon this will be possible by using annotated pull directly within `q`, but for now you're stuck
+;; separating things out this way)
 
 (defn type-instance-eids-rx
   [conn type-ident]
   (posh/q conn '[:find [?e ...] :in $ ?type-ident :where [?e :e/type ?type-ident]] type-ident))
 
+;; Now we can put these things together into a Reagent component
 
-(def todo-view
-  [:e/name :e/description {:e/category [:e/name]} :e/tags])
-
-(defn todos-view-nouveau [conn]
+(defn todos-view [conn]
   (let [todo-eids @(type-instance-eids-rx conn :e.type/Todo)]
     [re-com/v-box
      :children [[:h2 "Todos"]
                 (for [todo todo-eids]
-                  ;; XXX This is rather stupid; we need to entity-view to take a full pull, not just the eid.
-                  ;; This should make things a lot more performant; see the relevant code in datview
                   ^{:key todo}
-                  [nouveau/pull-view conn todo-view todo])]]))
-
-;;; ## Hacking on dynamatch
-
-;(defmacro dynamatch)
-
-
-;(dynamatch dynamatch-fn
-  ;([{:this/key the-key}] "The key was matched")
-  ;[other] (str "The other:" other))
-
+                  [datview/pull-view conn todo-view todo])]]))
 
 (defn main [conn]
-  (println "Rendering main function")
   [re-com/v-box
    :gap "15px"
    :children [[:h1 "Catalysis"]
               [:p "Congrats! You've got a catalysis app running :-)"]
-              ;[datview/debug "Here's a dynamatch example:"
-               ;(dynamatch-fn {:this/key "this val"})]
-              [todos-view-nouveau conn]]])
+              ;[datview/debug "Here's a debug example:"
+               ;@(type-instance-eids-rx conn :e.type/Todo)]
+              [todos-view conn]]])
 
 
 
