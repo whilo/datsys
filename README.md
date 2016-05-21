@@ -18,15 +18,20 @@ Full stack `(+ clj cljs reagent datomic datascript datsync)` web development.
 
 ## Vision
 
-Catalysis is built upon the following:
+See the talk from Clojure/West 2016: [Datalog all the way down](https://www.youtube.com/watch?v=aI0zVzzoK_E)
+
+In short, we're building upon the following:
 
 * Nikita Prokopov's [The Web After Tomorrow](http://tonsky.me/blog/the-web-after-tomorrow/) vision and DataScript library
 * The [Re-frame pattern](https://github.com/Day8/re-frame) and "streaming materialized views all the way down" philosophy
-* Maximized potential of Datomic/DataScript
+* Maximized potential of Datomic/DataScript for declarative query specifications
 
 
 ### Current state
 
+The application is currently loading data from datomic and rendering some simple views based on this data.
+Client -> Server write examples should be coming soon, as will a rewrite of the flexible datom/entity/schema based rendering pattern I'm calling Datview (to be extracted as a library soon).
+For right now at least, this serves as an example setup of [datsync](https://github.com/metasoarous/datsync) data flow.
 
 
 ## Usage
