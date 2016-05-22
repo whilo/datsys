@@ -25,8 +25,20 @@
 
 ;; The simplest of examples:
 
-(def todo-view
+(def base-todo-view
   [:e/name :e/description {:e/category [:e/name]} :e/tags])
+
+;; We could call (datview/pull-view conn base-todo-view eid) and get a hiccup view of the 
+
+;; We should just be able to use recursion depth specifications and ...; Posh doesn't allow, so this is just a
+;; hack for now...
+(defn todo-view
+  ([]
+   (todo-view 0))
+  ([depth]
+   (if-not (zero? depth)
+     (conj base-todo-view {:todo/subtasks (todo-view (dec depth))})
+     base-todo-view)))
 
 ;; The above only describes how we'd render a single todo item.
 ;; But we'll want to render a collection.
@@ -46,7 +58,7 @@
      :children [[:h2 "Todos"]
                 (for [todo todo-eids]
                   ^{:key todo}
-                  [datview/pull-view conn todo-view todo])]]))
+                  [datview/pull-view conn (todo-view 1) todo])]]))
 
 (defn main [conn]
   [re-com/v-box
@@ -57,5 +69,9 @@
                ;@(type-instance-eids-rx conn :e.type/Todo)]
               [todos-view conn]]])
 
+
+;; ## Crazy/cool ideas:
+
+;; * Learn a datomic database schema by scanning through data and building type inferences...
 
 

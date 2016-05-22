@@ -1,7 +1,7 @@
 (ns catalysis.client.db
   (:require [datsync.client :as datsync]
             [datascript.core :as d]
-            [catalysis.client.datview.nouveau :as datview]
+            [datview.core :as datview]
             [catalysis.shared.utils :as utils]
             [posh.core :as posh]))
 

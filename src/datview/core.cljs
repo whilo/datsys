@@ -24,98 +24,15 @@
 (enable-console-print!)
 
 
-;; This should become the future README of Datview...
+;; ## Defaults
 
-
-;; ## Overview
-
-;; If om-next gets the idea of components requesting the shape of data they need correct, Datview goes one step further in letting the shape of the data you request direct the rendering of that data.
-
-;; Instead of decorating components with information about where they get their data, decorate _queries_ with information about how they're supposed to render as UI :-)
-
-;; We do this with metadata on parts of our pull expressions and queries
-
-;; Example:
-
-;;     (def small-fonts {:font-size "8px"})
-;;     (def small-fonts-bold (merge small-fonts
-;;                                  {:font-weight "bold"}))
-
-;;     (def time-entry-view
-;;       ^{:attributes {:e/description {:style small-fonts}}
-;;         ;; Possible? But not supported yet.
-;;         :derived-attributes {:time.entry/duration
-;;                              ^{:datview.derived-attribute/of [:time.entry/stop-time :time.entry/start-time]}
-;;                              (fn [{:as time-entry :keys [time.entry/stop-time time.entry/start-time]}]
-;;                                (- stop-time start-time))}}
-;;       [:e/description :time.entry/duration]
-;;
-;;     (def todo-view
-;;       ^{:attributes {:e/tags {:style small-fonts-bold :summarize tag-name-fn}
-;;                      :e/description {:style small-fonts}
-;;                      :e/category {:style small-fonts-bold}
-;;                      :todo/hours {:wrapper todo-hours-with-summary}}
-;;         :wrapper [lined-box]}
-;;       [:e/name :e/category :e/tags :e/description
-;;        ;; Here we have some reference attributes
-;;        {:todo/time-entries time-entry-view}
-;;        {:todo/subtasks ^{:note "Here merge into the attributes passed down recursively"}
-;;                        '...}])
-
-
-;; Functions (components) like `pull-view`, `attr-view` and `value-view` are wired together into a recursive tree, based on various entry points.
-;; Each one of these entry points is described in the structure of this pull metadata
-;; Thus everything is perfectly composable, because everything is just data
-;; We can override things so that when we push down into some particular part of a pull expression, the corresponding components will be rendered exactly as you wish :-)
-
-;; The brilliant thing is that we can also just do this if you don't need customization:
-
-;;     (pull-view conn [:e/name :e/category :e/tags :e/description {:todo/subtasks ...}])
-
-;;; Or even better
-
-;;     (pull-view conn '[*] eid)
-
-;; Fine...
-
-;;     (entity-view conn eid)
-
-;; Collections?
-
-;; Yeah, we got that too:
-
-;;     (pull-many-view conn todo-view todo-eids)
-
-;; What about q?
-
-;;     (q-view conn {:find [[('pull todo-view '?todo) '...]]
-;;                   :where '[[?todo :e/type :e.type/Todo]
-;;                            [?todo :e/category :category/Work]]})
-
-;; This lets us build tables or other collection views using the full expressiveness of DataScript Datalog for scope.
-
-;; Imagine that?
-;; Composing queries which know how to render themselves.
-
-;; This gives us the best of all worlds.
-;; We'll have om-next style composability, but even better, because the description of how to turn the data into UI will itself be just part of that data and therefor effortlessly composable.
-
-
-;; ## Global defaults
-
-;; You might have a set of rendering functions, styles, wrappers, etc you want to get applied in a globally default manner, with a few overrides for specific views here and there.
-;; No problem.
-
-;; This schema is serializable to the DataScript DB, and can be accessed and operated upon in the component functions.
-;; The default functions pull from these.
-;; But you can customize and extend them more or less as you wish.
-;; And of course, all of these settings are overridable by the metadata specifications on a local basis.
-
-(defn default-config
-  [conn]
-  ;; Hmm... should we just serialize the structure fully?
-  ;; Adds complexity around wanting to have namespaced attribute names for everything
-  (reaction (:datview.default-config/value @(posh/pull conn '[*] [:db/ident :datview/default-config]))))
+(def default-config
+  ;; Not sure if this memoize will do what I'm hoping it does (:staying-alive true, effectively)
+  (memoize
+    (fn [conn]
+      ;; Hmm... should we just serialize the structure fully?
+      ;; Adds complexity around wanting to have namespaced attribute names for everything
+      (reaction (:datview.default-config/value @(posh/pull conn '[*] [:db/ident :datview/default-config]))))))
 
 (defn update-default-config!
   [conn f & args]
@@ -417,6 +334,22 @@
                 attr-ident)
        (lablify-attr-ident attr-ident))])
 
+
+
+;; ## Attribute metadata reactions
+
+;; We have a single function which gives us the attribute metadata (should rename fn? XXX)
+
+(def attribute-schema-reaction
+  "Returns the corresponding attr-ident entry from `datomic-schema-index-reaction`."
+  (memoize
+    (fn [conn attr-ident]
+      (posh/pull conn '[*] [:db/ident attr-ident]))))
+
+;; This code below may get better performance once we get the new posh stuff working...
+;; It would be nice though if we had some benchmarking stuff set up to be rigorous.
+;; XXX TODO
+
 ;(defn ^:deprecated old-attribute-signature
   ;;; Could work if we just used :staying-alive
   ;[conn attr-ident]
@@ -427,7 +360,6 @@
                         ;[(get-else $ ?attr :db/isComponent false) ?iscomp]
                  ;:in $ ?attr-ident]
           ;attr-ident))
-
 ;; This should be the implementation, but we have to swap out till we get pull in q in posh
 ;(defn datomic-schema-reaction
   ;"A reaction of the denormalized Datomic schema (anything with :db/ident) as DataScript sees it."
@@ -449,12 +381,6 @@
       ;(let [datomic-schema-index (datomic-schema-index-reaction conn)]
         ;(reaction (get @datomic-schema-index attr-ident))))))
 
-(def attribute-schema-reaction
-  "Returns the corresponding attr-ident entry from `datomic-schema-index-reaction`."
-  (memoize
-    (fn [conn attr-ident]
-      (posh/pull conn '[*] [:db/ident attr-ident]))))
-
 ;;; XXX TODO For this to work will need to make sure datsync is keeping the conn schema up to date, and has things in the right shape, as well as includes the datomic.db/type
 ;(def schema-reaction
   ;"A reaction of the schema as DataScript sees it internally."
@@ -462,6 +388,7 @@
     ;(fn [conn]
       ;(let [conn-rx (as-reaction conn)]
         ;(reaction (:schema @conn-rx))))))
+
 
 (def attribute-signature-reaction
   "Reaction of the pull of a schema attribute, where any references to something with an ident

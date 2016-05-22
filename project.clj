@@ -62,12 +62,18 @@
   :figwheel {:server-port 3448
              :repl true}
   :profiles {:dev-config {}
-             :dev {:dev-config
-                   {:dependencies [[org.clojure/tools.namespace "0.2.7"]
-                                   [com.cemerick/pomegranate "0.3.0"]
-                                   [figwheel "0.3.9"]]
+             :dev [:dev-config
+                   {:dependencies [[alembic "0.3.2"]
+                                   [figwheel "0.5.0-3"]]
                     :plugins [[lein-figwheel "0.3.9" :exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]]
+                              [com.palletops/lein-shorthand "0.4.0"]
                               [lein-environ "1.0.1"]]
+                    ;; The lein-shorthand plugin gives us access to the following shortcuts as `./*` (e.g. `./pprint`)
+                    :shorthand {. [clojure.pprint/pprint
+                                   alembic.still/distill
+                                   alembic.still/lein
+                                   taoensso.timbre/trace
+                                   taoensso.timbre/spy]}
                     :source-paths ["dev"]
                     :resource-paths ^:replace ["resources" "dev-resources" "resources-index/dev"]
                     :cljsbuild
@@ -75,7 +81,7 @@
                      {:client {:source-paths ["dev"]
                                :compiler
                                {:optimizations :none
-                                :source-map true}}}}}}
+                                :source-map true}}}}}]
              :prod {:cljsbuild
                     {:builds
                      {:client {:compiler

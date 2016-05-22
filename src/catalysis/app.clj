@@ -37,7 +37,7 @@
 ;; don't really need this... should delete
 (defmethod event-msg-handler :chsk/ws-ping
   [_ _]
-  (log/info "Ping"))
+  (log/debug "Ping"))
 
 ;; Setting up our two main datsync hooks
 
