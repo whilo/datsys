@@ -433,7 +433,7 @@
 (def default-pull-data-view-style
   (merge h-box-styles
          default-box-style
-         {:padding "10px 15px"
+         {:padding "8px 15px"
           :width "100%"}))
 
 
