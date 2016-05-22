@@ -322,17 +322,18 @@
 
 (defn label-view
   [conn pull-expr attr-ident]
-  [re-com/label
-   :style {:font-size "14px"
-           :font-weight "bold"}
-   :label
-   ;; XXX Again, should be pull-based
-   (or @(posh/q conn '[:find ?attr-label .
-                       :in $ ?attr-ident
-                       :where [?attr :db/ident ?attr-ident]
-                              [?attr :attribute/label ?attr-label]]
-                attr-ident)
-       (lablify-attr-ident attr-ident))])
+  (when attr-ident
+    [re-com/label
+     :style {:font-size "14px"
+             :font-weight "bold"}
+     :label
+     ;; XXX Again, should be pull-based
+     (or @(posh/q conn '[:find ?attr-label .
+                         :in $ ?attr-ident
+                         :where [?attr :db/ident ?attr-ident]
+                                [?attr :attribute/label ?attr-label]]
+                  attr-ident)
+         (lablify-attr-ident attr-ident))]))
 
 
 
@@ -344,7 +345,22 @@
   "Returns the corresponding attr-ident entry from `datomic-schema-index-reaction`."
   (memoize
     (fn [conn attr-ident]
-      (posh/pull conn '[*] [:db/ident attr-ident]))))
+      (posh/pull conn
+                 '[* {:db/valueType [:db/ident]} {:db/cardinality [:db/ident]}]
+                 [:db/ident attr-ident]))))
+
+;; Another function gives us a version of this that maps properly to idents
+(def attribute-signature-reaction
+  "Reaction of the pull of a schema attribute, where any references to something with an ident
+  have been replaced by that ident keyword."
+  (memoize
+    (fn [conn attr-ident]
+      (let [schema-rx (attribute-schema-reaction conn attr-ident)]
+        (reaction
+          (into {}
+            (map (fn [[k v]] [k (if-let [ident (:db/ident v)] ident v)])
+                 @schema-rx)))))))
+
 
 ;; This code below may get better performance once we get the new posh stuff working...
 ;; It would be nice though if we had some benchmarking stuff set up to be rigorous.
@@ -389,18 +405,6 @@
       ;(let [conn-rx (as-reaction conn)]
         ;(reaction (:schema @conn-rx))))))
 
-
-(def attribute-signature-reaction
-  "Reaction of the pull of a schema attribute, where any references to something with an ident
-  have been replaced by that ident keyword."
-  (memoize
-    (fn [conn attr-ident]
-      (let [schema-rx (attribute-schema-reaction conn attr-ident)]
-        (reaction
-          (into {}
-            (map (fn [[k v]] [k (if-let [ident (:db/ident v)] ident v)])
-                 @schema-rx)))))))
-
 (defn get-nested-pull-expr
   [pull-expr attr-ident]
   (or
@@ -419,20 +423,62 @@
 
 (declare pull-data-view)
 
+;(defn) 
+
+(def default-box-style
+  {:border "2px solid grey"
+   :margin "3px"
+   :background-color "#E5FFF6"})
+
+(def default-pull-data-view-style
+  (merge h-box-styles
+         default-box-style
+         {:padding "10px 15px"
+          :width "100%"}))
+
+
+(def default-attr-view-style
+  (merge v-box-styles
+         {:padding "5px 12px"}))
+
+(def default-mappings
+  {:attributes {:attr-values-view {:style h-box-styles}
+                :value-view {:style (merge h-box-styles
+                                           {:padding "3px"})}
+                :attr-view  {:style (merge v-box-styles
+                                           {:padding "5px 12px"})}
+                :label-view {:style {:font-size "14px"
+                                     :font-weight "bold"}}
+                :pull-view {:style (merge default-pull-data-view-style)}}})
+
+(def attributes-for-component
+  (memoize
+    (fn [conn pull-expr component-key]
+      ;; derived-attributes? TODO XXX
+      (-> default-mappings
+          (utils/deep-merge @(default-config conn))
+          ;; May need to customize this merge operation XXX
+          ;; Uh... also, not sure if the caching will work properly on this if someone changes the pull-expr metadata and it's not in a reaction (or even if it is, cause of equality semantics)
+          (utils/deep-merge (meta pull-expr))
+          :attributes
+          (get component-key)
+          ;; And make the class play nicely with specifying other classes XXX
+          (->> (merge {:class (name component-key)}))
+          reaction))))
+
 (defn value-view
   [conn pull-expr attr-ident value]
-  (let [attribute-signature (attribute-signature-reaction conn attr-ident)]
-    (fn [_ pull-expr attr-ident value]
-      [re-com/v-box
-       :padding "3px"
-       :children
-       [(match [@attribute-signature]
-          ;; For now, all refs render the same; May treat component vs non-comp separately later
-          [{:db/valueType :db.type/ref}]
-          [pull-data-view conn (get-nested-pull-expr pull-expr attr-ident) value]
-          ;; Miscellaneous value
-          :else
-          (str value))]])))
+  (let [attr-sig @(attribute-signature-reaction conn attr-ident)
+        comp-attrs @(attributes-for-component conn pull-expr :value-view)]
+    [:div comp-attrs
+     ;[debug "Here is the comp-attrs:" attr-sig]
+     (match [attr-sig]
+       ;; For now, all refs render the same; May treat component vs non-comp separately later
+       [{:db/valueType :db.type/ref}]
+       [pull-data-view conn (get-nested-pull-expr pull-expr attr-ident) value]
+       ;; Miscellaneous value
+       :else
+       (str value))]))
 
 (defn collapse-summary
   [conn attr-ident values]
@@ -447,42 +493,25 @@
 
 (defn attr-values-view
   [conn pull-expr attr-ident values]
-  (let [default-config-rx (default-config conn)
-        pull-meta (meta pull-expr)]
-    (fn [_ pull-expr attr-ident values]
-      [:div (utils/deep-merge {:style h-box-styles
-                               :class "attr-view"}
-                              (:attr-values-view @default-config-rx)
-                              (:attr-values-view pull-meta))
-       (for [value (utils/deref-or-value values)]
-         ^{:id (hash value)}
-         [value-view conn pull-expr attr-ident value])])))
+  [:div @(attributes-for-component conn pull-expr :attr-values-view)
+   (for [value (utils/deref-or-value values)]
+     ^{:id (hash value)}
+     [value-view conn pull-expr attr-ident value])])
 
 
 (defn cardinality
   [conn attr-ident])
 
-(def default-attr-view-style
-  (merge v-box-styles
-         {:padding "5px 12px"}))
-
 ;; Need to have controls etc here
 (defn attr-view
   [conn pull-expr attr-ident values]
-  (let [default-config-rx (default-config conn)
-        pull-meta (meta pull-expr)
-        attribute-signature (attribute-signature-reaction conn attr-ident)]
-    (fn [_ pull-expr attr-ident values]
-      [:div (utils/deep-merge {:style default-attr-view-style
-                               :class "attr-view"}
-                              (:attr-view @default-config-rx)
-                              (:attr-view pull-meta))
-       [label-view conn pull-expr attr-ident]
-       (match [@attribute-signature]
-         [{:db/cardinality :db.cardinality/many}]
-         [attr-values-view conn pull-expr attr-ident values]
-         :else
-         [value-view conn pull-expr attr-ident values])])))
+  [:div @(attributes-for-component conn pull-expr :attr-view)
+   [label-view conn pull-expr attr-ident]
+   (match [@(attribute-signature-reaction conn attr-ident)]
+     [{:db/cardinality :db.cardinality/many}]
+     [attr-values-view conn pull-expr attr-ident values]
+     :else
+     [value-view conn pull-expr attr-ident values])])
 
 
 ;(defn attribute-values-view
@@ -509,13 +538,6 @@
                       ;[value-view conn attr-ident value]))]])))
 
 
-;; ## Pull view
-
-;; This is a new idea... Originally, I was basing things on the entity-view component.
-;; But I'm realizing this is bad for the performance story.
-;; What we really need is a function that takes data from a pull, and renders all present relationships.
-;; This is I think the best way to minimize the amount of querying needed to retrieve data for some entity..
-
 ;; ## Security
 
 ;; All messages have signatures; or can
@@ -532,7 +554,6 @@
 ;; All rendering modes should be controllable via registered toggles or fn assignments
 ;; registration modules for plugins
 ;; * middleware?
-;; * 
 
 
 ;(def DataScriptDB
@@ -543,18 +564,6 @@
   ;(s/protocol)) 
 
 ;; Should actually try to tackle this
-
-
-(def default-box-style
-  {:border "2px solid grey"
-   :margin "7px"
-   :background-color "#E5FFF6"})
-
-(def default-pull-data-view-style
-  (merge h-box-styles
-         default-box-style
-         {:padding "15px 15px"
-          :width "100%"}))
 
 ;(s/defn pull-data-view :- Hiccup
   ;"Given a DS connection, a datview pull-expression and data from that pull expression (possibly as a reaction),
@@ -619,17 +628,6 @@
 (defn pull-view
   ([conn pull-expr eid]
    [pull-data-view conn pull-expr (posh/pull conn pull-expr eid)]))
-
-(defn non-component-attributes
-  [conn])
-
-(defn filter-non-component-attributes
-  [conn attributes]
-  (reaction (filter @(non-component-attributes conn) attributes)))
-
-(defn order-attributes
-  [conn]
-  (reaction (concat)))
 
 
 ;; General purpose sortable collections in datomic/ds?
