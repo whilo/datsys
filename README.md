@@ -17,7 +17,7 @@ Catalysis is a full stack web application template with:
 
 * [Re-frame](https://github.com/Day8/re-frame)/Samza data flow all the way down
 * full database replication between a central Datomic server and remote DataScript client servers via Datsync (optimistic updates coming soon)
-* composable, data-driven view/query specifications a la [Posh](https://github.com/mpdairy/posh) & Datview (see below).
+* composable, data-driven view/query specifications a la [Posh](https://github.com/mpdairy/posh) & [Datview](src/datview/README.md) (see below).
 
 In a sense it is a restricted realization of Nikita Prokopov's [The Web After Tomorrow](http://tonsky.me/blog/the-web-after-tomorrow/) vision.
 While currently limited, it provides a basis on which we can build out this vision, and the patterns it enables.
@@ -27,7 +27,7 @@ See the talk from Clojure/West 2016: [Datalog all the way down](https://www.yout
 
 ## Datview
 
-Of mention, this template stands as a staging ground for Datview.
+Of mention, this template stands as a staging ground for [Datview](src/datview/README.md).
 Datview is a pattern for declaratively and composably specifying how Datomic/DataScript data should translate into Reagent components.
 
 In short, we're building upon the following:
@@ -134,7 +134,7 @@ We may eventually set up Stuart Sierra's component here as well, but for now, th
 Views are in `catalysis.client.views`, and you'll note that the `main` function there is hooked up at the end of the `app` namespace.
 This is where you write your view code.
 
-This view code is written in a combination of [Reagent](https://github.com/reagent-project/reagent) and Posh, upon which Datview is based, and there's a lot to learn for each of these.
+This view code is written in a combination of [Reagent](https://github.com/reagent-project/reagent) and Posh, upon which [Datview](src/datview/README.md) is based, and there's a lot to learn for each of these.
 The long and short of it though is that posh lets us write Reagent reactions as DataScripts queries (`q`, `pull`, `pull-many`, `filter-pull`, `filter-q`, etc.).
 Thus, we obtain the re-frame "reactive materialized views" architecture with declarative query descriptions, al. a DataScript databases.
 
