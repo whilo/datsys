@@ -92,8 +92,9 @@ And of course, all of these settings are overridable by the metadata specificati
 
 ## Datview Specification Schema
 
-Datview uses (or intends to use) Prismatic Schema for type specifications.
-So for a detailed specification of the structure and extensive documentation look at the definition of `datview`.
+Datview is half way towards using Prismatic Schema for type specifications.
+However, now that Clojure 1.9 has proper specs, we'll probably redraft in terms of those.
+Still, for the mean time, the specs in `datview.schema` should serve as a rough guide for the shape of the datview specification grammar.
 
 
 ## Customizing global defaults
