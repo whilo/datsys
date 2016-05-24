@@ -1,4 +1,4 @@
-(ns catalysis.shared.routes
+(ns datview.routes
   (:require [bidi.bidi :as bidi]))
 
 
@@ -11,9 +11,9 @@
         ;; uber generix
         ["entity/" [#"\d+" :db/id]] {"/view" :view-entity
                                      "/edit" :edit-entity}
-        ;; Should be able to add guard here, but wasn't able to for some reason... Need to try again
+        ;; Should be able to add guard here, but wasn't able... Need to try again
         ;["entity/create/" [#"[\d[a-zA-Z]\-]*" :datview.creation/token]] :create-entity
-        ["entity/create/"  :datview.creation/token] :create-entity
+        ["entity/create/" :datview.creation/token] :create-entity
         ;; Create an entity with a given type
         ;; (not sure why keyword isn't working here.. should; if not need to write workarounds...
         ;["create/" [keyword :e/type]] :create-entity

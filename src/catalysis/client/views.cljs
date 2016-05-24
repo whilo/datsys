@@ -3,6 +3,7 @@
   (:require [catalysis.client.ws :as ws]
             [datview.core :as datview]
             [posh.core :as posh]
+            [reagent.core :as r]
             [re-com.core :as re-com]
             [re-frame.core :as re-frame] 
             [clojure.string :as string]
@@ -25,7 +26,13 @@
 
 ;; The simplest of examples:
 
+;(defonce spec-atom (r/atom {}))
+;(reset! spec-atom {:attributes {:attr-view {:style {:background-color "pink"}}}})
+
 (def base-todo-view
+  ^{:attributes {:attr-view {:style {:background-color "white"}}}}
+    ;:summary (fn [& args] "some fun")}
+  ;^{:datview/spec spec-atom}
   [:e/name :e/description {:e/category [:e/name]} :e/tags])
 
 ;; We could call (datview/pull-view conn base-todo-view eid) and get a hiccup view of the 
@@ -34,7 +41,7 @@
 ;; hack for now...
 (defn todo-view
   ([]
-   (todo-view 0))
+   base-todo-view)
   ([depth]
    (if-not (zero? depth)
      (conj base-todo-view {:todo/subtasks (todo-view (dec depth))})

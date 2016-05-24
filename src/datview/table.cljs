@@ -4,9 +4,9 @@
   ;; Need to abstract the ws
   (:require [catalysis.client.ws :as ws]
             ;; Router should probably just come into datview
-            [catalysis.client.router :as router]
+            [datview.router :as router]
             ;; Settings too...
-            [catalysis.client.settings :as settings]
+            [datview.settings :as settings]
             [datview.core :as datview]
             [datview.old :as old]
             [testdouble.cljs.csv :as csv]

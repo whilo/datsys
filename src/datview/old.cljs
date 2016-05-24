@@ -2,7 +2,7 @@
   "# Datview"
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require [posh.core :as posh]
-            [catalysis.client.router :as router]
+            [datview.router :as router]
             [catalysis.client.ws :as ws]
             [reagent.core :as r]
             [re-frame.core :as re-frame]

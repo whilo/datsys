@@ -1,11 +1,14 @@
-(ns catalysis.client.router
+(ns datview.router
   (:require [bidi.bidi :as bidi]
-            [catalysis.client.settings :as settings]
-            [catalysis.shared.routes :as routes]
+            [datview.settings :as settings]
+            [datview.routes :as routes]
             [datascript.core :as d]
             [goog.events])
   (:import [goog.history Html5History EventType]))
 
+
+;(defprotocol Router
+  ;(route))
 
 
 ;; Now we define how to instatiate the history object.

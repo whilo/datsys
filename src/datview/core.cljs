@@ -4,7 +4,8 @@
   (:require [posh.core :as posh]
             [schema.core :as s
              :include-macros true]
-            [catalysis.client.router :as router]
+            [datview.schema :as datview.s]
+            [datview.router :as router]
             [catalysis.shared.utils :as utils]
             [reagent.core :as r]
             [reagent.ratom :as ratom]
@@ -22,6 +23,105 @@
             #_[markdown.core :as md]))
 
 (enable-console-print!)
+
+
+;; ## Metadata view specification structure defaults
+
+(def ^:dynamic box-styles
+  {:display "inline-flex"
+   :flex-wrap "wrap"})
+
+(def ^:dynamic h-box-styles
+  (merge box-styles
+         {:flex-direction "row"}))
+
+(def ^:dynamic v-box-styles
+  (merge box-styles
+         {:flex-direction "column"}))
+
+(def bordered-box-style
+  {:border "2px solid grey"
+   :margin "3px"
+   :background-color "#E5FFF6"})
+
+(def default-pull-data-view-style
+  (merge h-box-styles
+         {:padding "8px 15px"
+          :width "100%"}))
+
+(def default-attr-view-style
+  (merge v-box-styles
+         {:padding "5px 12px"}))
+
+
+(declare default-controls)
+ 
+(def default-mappings
+  {:attributes {:attr-values-view {:style h-box-styles}
+                :value-view {:style (merge h-box-styles
+                                           {:padding "3px"})}
+                :attr-view  {:style (merge v-box-styles
+                                           {:padding "5px 12px"})}
+                :label-view {:style {:font-size "14px"
+                                     :font-weight "bold"}}
+                ;:pull-view {:style (merge h-box-styles)}
+                :pull-view {:style (merge h-box-styles
+                                          {:padding "8px 15px" :width "100%"}
+                                          bordered-box-style)}
+                ;; I guess controls works a bit differently?
+                :controls {:style (merge h-box-styles
+                                         {:padding "3px"})}}
+   :controls default-controls})
+
+   ;; Stuff for pull-data-view controls and such
+        ;[re-com/v-box
+         ;;:padding "10px"
+         ;:style style
+         ;:gap "10px"
+         ;:children [;; Little title bar thing with controls
+                    ;(when controls
+                      ;[re-com/h-box
+                       ;:justify :end
+                       ;:padding "15px"
+                       ;:gap "10px"
+                       ;;:style {:background "#DADADA"}
+                       ;:children [controls conn]])]]
+
+                    ;[re-com/h-box
+                     ;;:align :center
+                     ;:gap "10px"
+                     ;:children [[re-com/v-box
+                                 ;:padding "15px"
+                                 ;:children [[entity-summary conn eid]]]
+                                ;[re-com/v-box
+                                 ;:children (for [[attr-ident values] pull-data]
+                                             ;;; Dynamatch the id functions?
+                                             ;^{:key (hash attr-ident values)}
+                                             ;[attribute-values-view conn attr-ident values])]]]
+
+(defn box
+  "Prefers children over child"
+  [{:as args :keys [style children child]}]
+  [:div {:style (merge box-styles style)}
+   ;; Not sure yet if this will work as expected
+   (or (seq children) child)])
+
+;; For debugging
+
+(defn debug-str
+  ([message data]
+   (str message (debug-str data)))
+  ([data]
+   (with-out-str (pp/pprint data))))
+
+(defn debug
+  ([message data]
+   [:div.debug 
+    [:p message]
+    [:pre (debug-str data)]])
+  ([data]
+   (debug "" data)))
+
 
 
 ;; ## Defaults
@@ -50,7 +150,7 @@
 
 
 
-;; ## Some helpers
+;; ## Reactions
 
 (defn as-reaction
   "Treat a regular atom as though it were a reaction"
@@ -67,279 +167,49 @@
     (reaction (d/pull-many @conn-reaction pattern eids))))
 
 
-;; ## Base schema
-
-;; Some basic schema that needs to be transacted into the database in order for these functions to work
-
-(def base-schema
-  {:datview.default-config/value {}})
-
-(def default-settings
-  [{:db/ident :datview/default-config
-    :datview.default-config/value {}}])
-
-
-;; Have to think about how styles should be separated from container structure, etc, and how things like
-;; little control bars can be modularly extended, etc.
-;; How can this be modularized enough to be truly generally useful?
-
-;; These should be moved into styles ns or something
-
-(def ^:dynamic box-styles
-  {:display "inline-flex"
-   :flex-wrap "wrap"})
-
-(def ^:dynamic h-box-styles
-  (merge box-styles
-         {:flex-direction "row"}))
-
-(def ^:dynamic v-box-styles
-  (merge box-styles
-         {:flex-direction "column"}))
-
-(defn box
-  "Prefers children over child"
-  [{:as args :keys [style children child]}]
-  [:div {:style (merge box-styles style)}
-   ;; Not sure yet if this will work as expected
-   (or (seq children) child)])
-
-;; For debugging
-
-(defn debug-str
-  ([message data]
-   (str message (debug-str data)))
-  ([data]
-   (with-out-str (pp/pprint data))))
-
-(defn debug
-  ([message data]
-   [:div.debug 
-    [:p message]
-    [:pre (debug-str data)]])
-  ([data]
-   (debug "" data)))
-
-
-;; ## Client Helper components
-
-(defn collapse-button
-  "A collapse button for hiding information; arg collapse? should be a bool or an ratom thereof.
-  If no click handler is specified, toggles the atom."
-  ([collapse? on-click-fn]
-   (let [[icon-name tooltip] (if (try @collapse? (catch js/Object e collapse?)) ;; not positive this will work the way I expect
-                               ["zmdi-caret-right" "Expand collection"]
-                               ["zmdi-caret-down" "Hide collection"])]
-     [re-com/md-icon-button :md-icon-name icon-name
-                            :tooltip tooltip
-                            :on-click on-click-fn]))
-  ([collapse?]
-   (collapse-button collapse? (fn [] (swap! collapse? not)))))
-
-
-;; ## Builder pieces
-
-;; These are builder pieces part of the public api;
-;; These should be accessible for wrapping, and should be overridable/extensible via correspondingly named keys of the context map at various entry points
-
-(defn entity-name
-  [entity]
-  (match [entity]
-    [{:e/name name}] name
-    [{:e/type type}] (name type)
-    [{:attribute/label label}] label
-    ;; A terrible assumption really, but fine enough for now
-    :else (pr-str entity)))
-
-
-;; ## Datalog rules
-
-;; Need to look more closely at which of these we actually need; We may not need many at all
-
-(def datalog-rules
-  [])
-
-
-
-;; ## Event handler
-
-;; Need an even handler which can dispatch on some transaction patterns, and execute various messages or side effects.
-;; I think posh may give this to us?
-;; Or did in an old version?
-
-
-;; ## Datview schema spec
-
-
-;; ## Import
-
-;; This is a great ingestion format
-;; Make it possible to build semantic parsers for data on top of other web pages :-)
-
-
-
-
-;; ## Data structures
-
-;; ### Meta-types?
-
-;; Use metadata to add structure to the schema definitions
-
-(def StyleValue
-  (s/cond-pre s/Str s/Num))
-
-(def Style
-  "Style idents map to style values."
-  {s/Keyword
-   StyleValue})
-
-;; Should have a more general notion of how to construct functions between concepts
-;; Like this should be able to take a style function...
-(def ComponentStyleMapping
-  {s/Keyword Style})
-
-; Not sure I need this...
-(defn ratomish?
-  [x]
-  (satisfies? ratom/IReactiveAtom x))
-
-(def RAtom
-  (s/protocol ratom/IReactiveAtom))
-
-;; Function signature
-
-
-(declare DomNode)
-(declare GenericRenderFn)
-(declare Hiccup)
-
-(def DomNode
-  (s/cond-pre s/Keyword #'GenericRenderFn))
-
-(def HiccupAttrs
-  ;; Just to s/Any for now
-  {(s/optional-key :style) Style
-   s/Keyword s/Any})
-
-(def Hiccup
-  ;; Nil is valid hiccup (renders as nothing)
-  (s/maybe
-    ;; First element is a dom node
-    [(s/one DomNode "dom-node")
-     ;; Can optionally have an attributes map
-     (s/optional (s/cond-pre (s/recursive #'Hiccup) HiccupAttrs) "hiccup-attrs-or-child")
-     ;; The rest is hiccup children
-     (s/recursive #'Hiccup)]))
-
-
-(def ViewDescription
-  "Stub; The structure of a view description. This in general will either by a pull structure or a :find clause,
-  but should be robust enough to represent any materialized view one might get from a reaction."
-  s/Any)
-
-(s/defn MaybeRatomOf :- s/Schema
-  "Creates a schema which represents an input that either satisfies s, or is a RAtom of s. Note that s should not
-  overlap with the definition of datview.schema/RAtom."
-  [s :- s/Schema]
-  ;; For static here need to push through that we want the ratom to resolve to this type; Could we extend the protocol function?
-  (s/cond-pre RAtom s))
-
-;; For now; Should show as derefable
-(def DSConn s/Any)
-
-;; Can't get this to work
-;(s/defn ComponentRenderFnOf :- s/Schema
-  ;"Render function signature for data of shape s. Note that s is restricted to the semantics of MaybeRatomOf."
-  ;[for-type :- s/Schema]
-  ;(s/=>* Hiccup
-    ;[DSConn ViewDescription (MaybeRatomOf for-type)]))
-    ;[DSConn ViewDescription s/Any]))
-
-(declare PullExpr)
-
-(def PullReferenceAttrExpr
-  {s/Keyword (s/recursive #'PullExpr)})
-
-(def RestSymbol '*)
-
-(def PullAttrExpr
-  (s/cond-pre s/Keyword PullReferenceAttrExpr RestSymbol))
-
-(def PullExpr
-  [PullAttrExpr])
-
-
-;; Can't get the ComponentRenderFnOf dynamic schema to work
-;(def GenericRenderFn
-  ;(ComponentRenderFnOf s/Any))
-;; This should maybe be something more specific
-(def GenericRenderFn s/Any)
-
-(def DataScriptDB s/Any)
-(def WrapperFn s/Any)
-
-(def NodeKeword s/Keyword)
-
-(def StrictComponentAttrs
-  {(s/optional-key :style) Style
-   (s/optional-key :class) s/Str
-   (s/optional-key :id) s/Str})
-
-(def ComponentAttrs
-  (merge
-    StrictComponentAttrs
-    {(s/optional-key :component) GenericRenderFn
-     (s/optional-key :wrapper) WrapperFn
-     s/Keyword s/Any}))
-
-(def DatviewSpec
-  "A schema for how things are supposed to be rendered, passed around as declarative query metadata."
-  (merge
-    {(s/optional-key :attributes) {s/Keyword ComponentAttrs}}
-    {(s/optional-key :components) {s/Keyword GenericRenderFn}}
-    ComponentAttrs))
-
-;(println DatviewSpec)
-
-
-;; Would be cool to have a function that computes a schema based on a particular pull expr (and perhaps current db val)
-(s/defn PullDataForExpr :- s/Schema
-  [db :- DataScriptDB, pull-expr :- PullExpr])
-
-(def GenericPullData
-  {s/Keyword s/Any})
-
-
-;; ## Attribute view
-
-;; View all of the values for some entity, attribute pair
-;; Values must be passed in explicitly, or in an atom
-
-(defn lablify-attr-ident
-  [attr-ident]
-  (let [[x & xs] (clojure.string/split (name attr-ident) #"-")]
-    (clojure.string/join " " (concat [(clojure.string/capitalize x)] xs))))
-
-(defn label-view
-  [conn pull-expr attr-ident]
-  (when attr-ident
-    [re-com/label
-     :style {:font-size "14px"
-             :font-weight "bold"}
-     :label
-     ;; XXX Again, should be pull-based
-     (or @(posh/q conn '[:find ?attr-label .
-                         :in $ ?attr-ident
-                         :where [?attr :db/ident ?attr-ident]
-                                [?attr :attribute/label ?attr-label]]
-                  attr-ident)
-         (lablify-attr-ident attr-ident))]))
-
-
-
-;; ## Attribute metadata reactions
-
-;; We have a single function which gives us the attribute metadata (should rename fn? XXX)
+(defn meta-sig
+  [args-vec]
+  (mapv #(vector % (meta %)) args-vec))
+
+(defn meta-memoize
+  ([f]
+   ;; Don't know if this actually has to be an r/atom; may be more performant for it not to be
+   (meta-memoize f (r/atom {})))
+  ([f cache]
+   (fn [& args]
+     (if-let [cached-val (get @cache (meta-sig args))] 
+       cached-val
+       (let [new-val (apply f args)]
+         (swap! cache assoc (meta-sig args) new-val)
+         new-val)))))
+  
+(def component-config
+  (memoize
+    (fn [conn view-spec]
+      (reaction
+        ;(update-in
+          (utils/deep-merge
+            default-mappings
+            @(default-config conn)
+            (or (utils/deref-or-value (:datview/spec view-spec))
+                view-spec))))))
+          ;[:attributes]
+          ;;; Should we even be doing this?
+          ;(fn [mappings]
+            ;(into {}
+                  ;(map (fn [[k v]]
+                         ;[k (update-in v [:style :class] (fn [class] (or class (name k))))])))))))))
+
+(def attributes-for-component
+  (memoize
+    (fn [conn view-spec component-key]
+      ;; derived-attributes? TODO XXX
+      (-> @(component-config conn view-spec)
+          :attributes
+          (get component-key)
+          reaction))))
+
+;; ### Attribute metadata reactions
 
 (def attribute-schema-reaction
   "Returns the corresponding attr-ident entry from `datomic-schema-index-reaction`."
@@ -405,6 +275,105 @@
       ;(let [conn-rx (as-reaction conn)]
         ;(reaction (:schema @conn-rx))))))
 
+
+
+
+;; ## DataScript schema
+
+;; Some basic schema that needs to be transacted into the database in order for these functions to work
+
+(def base-schema
+  {:datview.default-config/value {}})
+
+(def default-settings
+  [{:db/ident :datview/default-config
+    :datview.default-config/value {}}])
+
+;; Have to think about how styles should be separated from container structure, etc, and how things like
+;; little control bars can be modularly extended, etc.
+;; How can this be modularized enough to be truly generally useful?
+
+;; These should be moved into styles ns or something
+
+
+
+;; ## Client Helper components
+
+(defn collapse-button
+  "A collapse button for hiding information; arg collapse? should be a bool or an ratom thereof.
+  If no click handler is specified, toggles the atom."
+  ([collapse? on-click-fn]
+   (let [[icon-name tooltip] (if (try @collapse? (catch js/Object e collapse?)) ;; not positive this will work the way I expect
+                               ["zmdi-caret-right" "Expand collection"]
+                               ["zmdi-caret-down" "Hide collection"])]
+     [re-com/md-icon-button :md-icon-name icon-name
+                            :tooltip tooltip
+                            :on-click on-click-fn]))
+  ([collapse?]
+   (collapse-button collapse? (fn [] (swap! collapse? not)))))
+
+
+;; ## Builder pieces
+
+;; These are builder pieces part of the public api;
+;; These should be accessible for wrapping, and should be overridable/extensible via correspondingly named keys of the context map at various entry points
+
+(defn entity-name
+  [entity]
+  (match [entity]
+    [{:e/name name}] name
+    [{:e/type type}] (name type)
+    [{:attribute/label label}] label
+    ;; A terrible assumption really, but fine enough for now
+    :else (pr-str entity)))
+
+
+
+;; ## Event handler
+
+;; Need an even handler which can dispatch on some transaction patterns, and execute various messages or side effects.
+;; I think posh may give this to us?
+;; Or did in an old version?
+
+
+;; ## Datview schema spec
+
+
+;; ## Import
+
+;; This is a great ingestion format
+;; Make it possible to build semantic parsers for data on top of other web pages :-)
+
+
+
+;; ## Attribute view
+
+;; View all of the values for some entity, attribute pair
+;; Values must be passed in explicitly, or in an atom
+
+(defn lablify-attr-ident
+  [attr-ident]
+  (let [[x & xs] (clojure.string/split (name attr-ident) #"-")]
+    (clojure.string/join " " (concat [(clojure.string/capitalize x)] xs))))
+
+(defn label-view
+  [conn pull-expr attr-ident]
+  (when attr-ident
+    [re-com/label
+     :style {:font-size "14px"
+             :font-weight "bold"}
+     :label
+     ;; XXX Again, should be pull-based
+     (or @(posh/q conn '[:find ?attr-label .
+                         :in $ ?attr-ident
+                         :where [?attr :db/ident ?attr-ident]
+                                [?attr :attribute/label ?attr-label]]
+                  attr-ident)
+         (lablify-attr-ident attr-ident))]))
+
+
+
+
 (defn get-nested-pull-expr
   [pull-expr attr-ident]
   (or
@@ -423,53 +392,28 @@
 
 (declare pull-data-view)
 
-;(defn) 
 
-(def default-box-style
-  {:border "2px solid grey"
-   :margin "3px"
-   :background-color "#E5FFF6"})
+        ;[controls conn pull-expr pull-data]
+(defn default-controls
+  [conn pull-expr pull-data]
+  (let [pull-data (utils/deref-or-value pull-data)
+        view-spec (meta pull-expr)]
+    [:div @(attributes-for-component conn view-spec :controls)
+     [re-com/md-icon-button :md-icon-name "zmdi-copy"
+                            :tooltip "Copy entity"
+                            :on-click (fn [] (js/alert "Coming soon to a database application near you"))]
+     [re-com/md-icon-button :md-icon-name "zmdi-edit"
+                            :tooltip "Edit entity"
+                            ;; This assumes the pull has :datsync.remote.db/id... automate?
+                            :on-click (fn [] (router/set-route! conn {:handler :edit-entity :route-params {:db/id (:datsync.remote.db/id pull-data)}}))]]))
 
-(def default-pull-data-view-style
-  (merge h-box-styles
-         default-box-style
-         {:padding "8px 15px"
-          :width "100%"}))
 
-
-(def default-attr-view-style
-  (merge v-box-styles
-         {:padding "5px 12px"}))
-
-(def default-mappings
-  {:attributes {:attr-values-view {:style h-box-styles}
-                :value-view {:style (merge h-box-styles
-                                           {:padding "3px"})}
-                :attr-view  {:style (merge v-box-styles
-                                           {:padding "5px 12px"})}
-                :label-view {:style {:font-size "14px"
-                                     :font-weight "bold"}}
-                :pull-view {:style (merge default-pull-data-view-style)}}})
-
-(def attributes-for-component
-  (memoize
-    (fn [conn pull-expr component-key]
-      ;; derived-attributes? TODO XXX
-      (-> default-mappings
-          (utils/deep-merge @(default-config conn))
-          ;; May need to customize this merge operation XXX
-          ;; Uh... also, not sure if the caching will work properly on this if someone changes the pull-expr metadata and it's not in a reaction (or even if it is, cause of equality semantics)
-          (utils/deep-merge (meta pull-expr))
-          :attributes
-          (get component-key)
-          ;; And make the class play nicely with specifying other classes XXX
-          (->> (merge {:class (name component-key)}))
-          reaction))))
+;(defn)
 
 (defn value-view
   [conn pull-expr attr-ident value]
   (let [attr-sig @(attribute-signature-reaction conn attr-ident)
-        comp-attrs @(attributes-for-component conn pull-expr :value-view)]
+        comp-attrs @(attributes-for-component conn (meta pull-expr) :value-view)]
     [:div comp-attrs
      ;[debug "Here is the comp-attrs:" attr-sig]
      (match [attr-sig]
@@ -493,9 +437,9 @@
 
 (defn attr-values-view
   [conn pull-expr attr-ident values]
-  [:div @(attributes-for-component conn pull-expr :attr-values-view)
+  [:div @(attributes-for-component conn (meta pull-expr) :attr-values-view)
    (for [value (utils/deref-or-value values)]
-     ^{:id (hash value)}
+     ^{:key (hash value)}
      [value-view conn pull-expr attr-ident value])])
 
 
@@ -505,7 +449,7 @@
 ;; Need to have controls etc here
 (defn attr-view
   [conn pull-expr attr-ident values]
-  [:div @(attributes-for-component conn pull-expr :attr-view)
+  [:div @(attributes-for-component conn (meta pull-expr) :attr-view)
    [label-view conn pull-expr attr-ident]
    (match [@(attribute-signature-reaction conn attr-ident)]
      [{:db/cardinality :db.cardinality/many}]
@@ -556,74 +500,32 @@
 ;; * middleware?
 
 
-;(def DataScriptDB
-  ;(s/protocol ID))
-
-;;; directly use d/db?
-;(def Conn
-  ;(s/protocol)) 
-
 ;; Should actually try to tackle this
 
-;(s/defn pull-data-view :- Hiccup
-  ;"Given a DS connection, a datview pull-expression and data from that pull expression (possibly as a reaction),
-  ;render the UI subject to the pull-expr metadata."
-  ;;; Should be able to bind the data to the type dictated by pull expr
-  ;([conn :- Conn, pull-expr :- PullExpr, pull-data :- GenericPullData]
 (defn pull-data-view
   "Given a DS connection, a datview pull-expression and data from that pull expression (possibly as a reaction),
   render the UI subject to the pull-expr metadata."
   ;; Should be able to bind the data to the type dictated by pull expr
   ([conn, pull-expr, pull-data]
    ;; Annoying to have to do this
-   (let [default-config-reaction (default-config conn)
-         pull-meta (meta pull-expr)]
-     (fn [db pull-expr pull-data]
-       (let [default-config @default-config-reaction
-             config (utils/deep-merge default-config pull-meta)
-             pull-data (utils/deref-or-value pull-data)]
-         [:div (utils/deep-merge {:style default-pull-data-view-style
-                                  :class "pull-data-view"}
-                                 (:pull-view config))
-          (when-let [controls (:controls config)]
-            [controls conn pull-expr pull-data])
-          (when-let [summary (:summary config)]
-            [:div {:style (merge h-box-styles)}
-             [summary conn pull-expr pull-data]])
-          ;; XXX TODO Questions:
-          ;; Need a react-id function that lets us repeat attrs when needed
-          ;; Can we just use indices here?
-          ;; How do we handle *?
-          (for [pull-attr (distinct pull-expr)]
-            (let [attr-ident (cond (keyword? pull-attr) pull-attr
-                                   (map? pull-attr) (first (keys pull-attr)))]
-              ^{:key (hash pull-attr)}
-              [attr-view conn pull-expr attr-ident (get pull-data attr-ident)]))])))))
-
-        ;[re-com/v-box
-         ;;:padding "10px"
-         ;:style style
-         ;:gap "10px"
-         ;:children [;; Little title bar thing with controls
-                    ;(when controls
-                      ;[re-com/h-box
-                       ;:justify :end
-                       ;:padding "15px"
-                       ;:gap "10px"
-                       ;;:style {:background "#DADADA"}
-                       ;:children [controls conn]])]]
-
-                    ;[re-com/h-box
-                     ;;:align :center
-                     ;:gap "10px"
-                     ;:children [[re-com/v-box
-                                 ;:padding "15px"
-                                 ;:children [[entity-summary conn eid]]]
-                                ;[re-com/v-box
-                                 ;:children (for [[attr-ident values] pull-data]
-                                             ;;; Dynamatch the id functions?
-                                             ;^{:key (hash attr-ident values)}
-                                             ;[attribute-values-view conn attr-ident values])]]]
+   (let [config @(component-config conn (meta pull-expr))
+         pull-data (utils/deref-or-value pull-data)]
+     [:div (get-in config [:attributes :pull-view])
+      [:div (get-in config [:attributes :pull-view-summary])
+        (when-let [controls (get-in config [:controls])]
+          [controls conn pull-expr pull-data])
+        (when-let [summary (:summary config)]
+          [:div {:style (merge h-box-styles)}
+           [summary conn pull-expr pull-data]])]
+      ;; XXX TODO Questions:
+      ;; Need a react-id function that lets us repeat attrs when needed
+      ;; Can we just use indices here?
+      ;; How do we handle *?
+      (for [pull-attr (distinct pull-expr)]
+        (let [attr-ident (cond (keyword? pull-attr) pull-attr
+                               (map? pull-attr) (first (keys pull-attr)))]
+          ^{:key (hash pull-attr)}
+          [attr-view conn pull-expr attr-ident (get pull-data attr-ident)]))])))
 
 (defn pull-view
   ([conn pull-expr eid]

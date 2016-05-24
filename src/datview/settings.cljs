@@ -1,4 +1,4 @@
-(ns catalysis.client.settings
+(ns datview.settings
   (:require [datascript.core :as d]
             [posh.core :as posh]))
             
