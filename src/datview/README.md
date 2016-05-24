@@ -9,10 +9,10 @@
 If om-next gets the idea of components requesting the shape of data they need correct, Datview goes one step further in realizing you can let the shape of the data you request direct the rendering of that data.
 
 Instead of decorating components with information about where they get their data, decorate _queries_ with information about how they render :-)
-This data driven approach leads to view code which is inherently more composable.
-This means that more complex user interfaces and systems can be built programmatically.
+This data driven approach leads to effortlessly composable view code, meaning complex UI can be programmatically constructed from simple pieces.
+This will make it possible to very rapidly build complex data driven applications.
 
-It's going to take a 
+It's going to take a bit of work to fully smooth out all the defaults and patterns, but I'm liking the picture so far.
 
 
 ## How does it work?
