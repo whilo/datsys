@@ -58,13 +58,22 @@
   :main ^:skip-aot catalysis.run
   :cljsbuild {:builds {:client {:source-paths ["src/catalysis/client" "src/datview"]
                                 :compiler {:output-to "resources/public/js/app.js"
-                                           :output-dir "dev-resources/public/js/out"}}}}
+                                           :output-dir "dev-resources/public/js/out"}}
+                       :devcards {:source-paths ["src"]   
+                                  :figwheel {:devcards true}  ;; <- note this
+                                  :compiler {:main    "catalysis.client.cards"
+                                             :asset-path "js/compiled/devcards_out"
+                                             :output-to  "resources/public/js/{{your lib name}}_devcards.js"
+                                             :output-dir "resources/public/js/devcards_out"
+                                             :source-map-timestamp true}}}} 
+                
   :figwheel {:server-port 3448
              :repl true}
   :profiles {:dev-config {}
              :dev [:dev-config
                    {:dependencies [[alembic "0.3.2"]
-                                   [figwheel "0.5.0-3"]]
+                                   [figwheel "0.5.0-3"]
+                                   [devcards "0.2.1"]]
                     :plugins [[lein-figwheel "0.3.9" :exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]]
                               [com.palletops/lein-shorthand "0.4.0"]
                               [lein-environ "1.0.1"]]
