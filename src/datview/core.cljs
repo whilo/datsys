@@ -56,6 +56,7 @@
 
 (declare default-controls)
  
+;; Need to standardize keys, and make schema ready
 (def default-mappings
   {:attributes {:attr-values-view {:style h-box-styles}
                 :value-view {:style (merge h-box-styles
@@ -70,7 +71,11 @@
                                           bordered-box-style)}
                 ;; I guess controls works a bit differently?
                 :controls {:style (merge h-box-styles
-                                         {:padding "3px"})}}
+                                         {:padding "3px"})}
+                :pull-view-summary {:style (merge v-box-styles
+                                                  {:padding "15px"
+                                                   :font-size "18px"
+                                                   :font-weight "bold"})}}
    :controls default-controls})
 
    ;; Stuff for pull-data-view controls and such
@@ -318,15 +323,18 @@
 ;; These are builder pieces part of the public api;
 ;; These should be accessible for wrapping, and should be overridable/extensible via correspondingly named keys of the context map at various entry points
 
-(defn entity-name
-  [entity]
-  (match [entity]
+(defn pull-summary
+  [pull-data]
+  (match [pull-data]
     [{:e/name name}] name
     [{:e/type type}] (name type)
     [{:attribute/label label}] label
     ;; A terrible assumption really, but fine enough for now
-    :else (pr-str entity)))
+    :else (pr-str pull-data)))
 
+(defn pull-summary-view
+  [conn pull-expr pull-data]
+  [:div (pull-summary pull-data)])
 
 
 ;; ## Event handler

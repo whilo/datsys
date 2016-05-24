@@ -29,9 +29,10 @@
 ;(defonce spec-atom (r/atom {}))
 ;(reset! spec-atom {:attributes {:attr-view {:style {:background-color "pink"}}}})
 
+
 (def base-todo-view
-  ^{:attributes {:attr-view {:style {:background-color "white"}}}}
-    ;:summary (fn [& args] "some fun")}
+  ^{:attributes {:attr-view {:style {:background-color "white"}}}
+    :summary datview/pull-summary-view}
   ;^{:datview/spec spec-atom}
   [:e/name :e/description {:e/category [:e/name]} :e/tags])
 
