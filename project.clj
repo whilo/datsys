@@ -56,14 +56,15 @@
   :resource-paths ["resources" "resources-index/prod"]
   :target-path "target/%s"
   :main ^:skip-aot catalysis.run
+  :repl-options {:init-ns user}
   :cljsbuild {:builds {:client {:source-paths ["src/catalysis/client" "src/datview"]
                                 :compiler {:output-to "resources/public/js/app.js"
                                            :output-dir "dev-resources/public/js/out"}}
-                       :devcards {:source-paths ["src"]   
+                       :devcards {:source-paths ["src"]
                                   :figwheel {:devcards true}  ;; <- note this
                                   :compiler {:main    "catalysis.client.cards"
                                              :asset-path "js/compiled/devcards_out"
-                                             :output-to  "resources/public/js/{{your lib name}}_devcards.js"
+                                             :output-to  "resources/public/js/catalysis_devcards.js"
                                              :output-dir "resources/public/js/devcards_out"
                                              :source-map-timestamp true}}}}
   :figwheel {:server-port 3448

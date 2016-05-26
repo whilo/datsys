@@ -54,91 +54,7 @@
          {:padding "5px 12px"}))
 
 
-(declare default-pull-view-controls)
-(declare field-for-controls)
-
-
-(def default-mappings
-  ;; These are things that would apply per entity, and not depend on attribute
-  {:datview.level/entity
-   ;; Things that get passed in for a given component's html attributes arg
-   {:datview.html/attrs
-    ;; Keys here are component keys; For entries here which could potentially be attribute specific, such as :attr-view, the entity level settings here are
-    {:datview/attr-values-view {:style h-box-styles}
-     :datview/value-view {:style (merge h-box-styles
-                                        {:padding "3px"})}
-     :datview/attr-view  {:style (merge v-box-styles
-                                        {:padding "5px 12px"})}
-     :datview/label-view {:style {:font-size "14px"
-                                  :font-weight "bold"}}
-     :datview/pull-view {:style (merge h-box-styles
-                                       {:padding "8px 15px" :width "100%"}
-                                       bordered-box-style)}
-     :datview/controls {:style (merge h-box-styles
-                                      {:padding "3px"})}
-     :datview/pull-view-summary {:style (merge v-box-styles
-                                               {:padding "15px"
-                                                :font-size "18px"
-                                                :font-weight "bold"})}}
-    :datview/controls
-    {:pull-view default-pull-view-controls}}
-   ;; These are things that you might want to customize per entity-attribute level; I'm just including some nils for a sense of what this might look like
-   :datview.level/attr
-   {:datview/controls 
-    {:datview/field-for {:default nil
-                         :cardinality-many-default nil}}
-    :datview.html/attrs}})
-
-:level :valuek
-
-;;; Need to standardize keys, and make schema ready
-;(def default-mappings
-  ;{:attributes {:attr-values-view {:style h-box-styles}
-                ;:value-view {:style (merge h-box-styles
-                                           ;{:padding "3px"})}
-                ;:attr-view  {:style (merge v-box-styles
-                                           ;{:padding "5px 12px"})}
-                ;:label-view {:style {:font-size "14px"
-                                     ;:font-weight "bold"}}
-                ;;:pull-view {:style (merge h-box-styles)}
-                ;:pull-view {:style (merge h-box-styles
-                                          ;{:padding "8px 15px" :width "100%"}
-                                          ;bordered-box-style)}
-                ;;; I guess controls works a bit differently?
-                ;:controls {:style (merge h-box-styles
-                                         ;{:padding "3px"})}
-                ;:pull-view-summary {:style (merge v-box-styles
-                                                  ;{:padding "15px"
-                                                   ;:font-size "18px"
-                                                   ;:font-weight "bold"})}}
-   ;:controls {:pull-view default-pull-view-controls
-              ;:field-for {:default nil
-                          ;:cardinality-many-default nil}}})
-
-   ;; Stuff for pull-data-view controls and such
-        ;[re-com/v-box
-         ;;:padding "10px"
-         ;:style style
-         ;:gap "10px"
-         ;:children [;; Little title bar thing with controls
-                    ;(when controls
-                      ;[re-com/h-box
-                       ;:justify :end
-                       ;:padding "15px"
-                       ;:gap "10px"
-                       ;;:style {:background "#DADADA"}
-                       ;:children [controls conn]])]]
-                    ;[re-com/h-box
-                     ;;:align :center
-                     ;:gap "10px"
-                     ;:children [[re-com/v-box
-                                 ;:padding "15px"
-                                 ;:children [[entity-summary conn eid]]]
-                                ;[re-com/v-box
-                                 ;:children (for [[attr-ident values] pull-data]
-                                             ;;; Dynamatch the id functions?
-                                             ;^{:key (hash attr-ident values)}
-                                             ;[attribute-values-view conn attr-ident values])]]]
+(def default-mappings (r/atom {}))
 
 (defn box
   "Prefers children over child"
@@ -230,7 +146,7 @@
       (reaction
         ;(update-in
           (utils/deep-merge
-            default-mappings
+            @default-mappings
             @(default-config conn)
             ;; Should name :datview/spec better and clarify in documentation
             (or (utils/deref-or-value (:datview/spec view-spec))
@@ -616,3 +532,81 @@
               (sort-by @(attr-sort-by conn attr-ident) values)
               (sort values))))
 
+;; Have to do this after everything else so this can reference all of the control components (etc)
+(reset! default-mappings
+  {:attributes {:attr-values-view {:style h-box-styles}
+                :value-view {:style (merge h-box-styles
+                                           {:padding "3px"})}
+                :attr-view  {:style (merge v-box-styles
+                                           {:padding "5px 12px"})}
+                :label-view {:style {:font-size "14px"
+                                     :font-weight "bold"}}
+                ;:pull-view {:style (merge h-box-styles)}
+                :pull-view {:style (merge h-box-styles
+                                          {:padding "8px 15px" :width "100%"}
+                                          bordered-box-style)}
+                ;; I guess controls works a bit differently?
+                :controls {:style (merge h-box-styles
+                                         {:padding "3px"})}
+                :pull-view-summary {:style (merge v-box-styles
+                                                  {:padding "15px"
+                                                   :font-size "18px"
+                                                   :font-weight "bold"})}}
+   :controls default-pull-view-controls})
+
+   ;; Stuff for pull-data-view controls and such
+        ;[re-com/v-box
+         ;;:padding "10px"
+         ;:style style
+         ;:gap "10px"
+         ;:children [;; Little title bar thing with controls
+                    ;(when controls
+                      ;[re-com/h-box
+                       ;:justify :end
+                       ;:padding "15px"
+                       ;:gap "10px"
+                       ;;:style {:background "#DADADA"}
+                       ;:children [controls conn]])]]
+
+                    ;[re-com/h-box
+                     ;;:align :center
+                     ;:gap "10px"
+                     ;:children [[re-com/v-box
+                                 ;:padding "15px"
+                                 ;:children [[entity-summary conn eid]]]
+                                ;[re-com/v-box
+                                 ;:children (for [[attr-ident values] pull-data]
+                                             ;;; Dynamatch the id functions?
+                                             ;^{:key (hash attr-ident values)}
+                                             ;[attribute-values-view conn attr-ident values])]]]
+
+;(def default-mappings
+  ;;; These are things that would apply per entity, and not depend on attribute
+  ;{:datview.level/entity
+   ;;; Things that get passed in for a given component's html attributes arg
+   ;{:datview.html/attrs
+    ;;; Keys here are component keys; For entries here which could potentially be attribute specific, such as :attr-view, the entity level settings here are
+    ;{:datview/attr-values-view {:style h-box-styles}
+     ;:datview/value-view {:style (merge h-box-styles
+                                        ;{:padding "3px"})}
+     ;:datview/attr-view  {:style (merge v-box-styles
+                                        ;{:padding "5px 12px"})}
+     ;:datview/label-view {:style {:font-size "14px"
+                                  ;:font-weight "bold"}}
+     ;:datview/pull-view {:style (merge h-box-styles
+                                       ;{:padding "8px 15px" :width "100%"}
+                                       ;bordered-box-style)}
+     ;:datview/controls {:style (merge h-box-styles
+                                      ;{:padding "3px"})}
+     ;:datview/pull-view-summary {:style (merge v-box-styles
+                                               ;{:padding "15px"
+                                                ;:font-size "18px"
+                                                ;:font-weight "bold"})}}
+    ;:datview/controls
+    ;{:pull-view default-pull-view-controls}}
+   ;;; These are things that you might want to customize per entity-attribute level; I'm just including some nils for a sense of what this might look like
+   ;:datview.level/attr
+   ;{:datview/controls 
+    ;{:datview/field-for {:default nil
+                         ;:cardinality-many-default nil}}
+    ;:datview.html/attrs}})

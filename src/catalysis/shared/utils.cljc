@@ -2,7 +2,7 @@
 
 (defn deref-or-value
   [val-or-atom]
-  (if (satisfies? IDeref val-or-atom) @val-or-atom val-or-atom))
+  (if (satisfies? #?(:cljs IDeref :clj clojure.lang.IDeref) val-or-atom) @val-or-atom val-or-atom))
 
 (defn deep-merge
   "Like merge, but merges maps recursively."
