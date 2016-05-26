@@ -54,55 +54,8 @@
          {:padding "5px 12px"}))
 
 
-(declare default-controls)
- 
 ;; Need to standardize keys, and make schema ready
-(def default-mappings
-  {:attributes {:attr-values-view {:style h-box-styles}
-                :value-view {:style (merge h-box-styles
-                                           {:padding "3px"})}
-                :attr-view  {:style (merge v-box-styles
-                                           {:padding "5px 12px"})}
-                :label-view {:style {:font-size "14px"
-                                     :font-weight "bold"}}
-                ;:pull-view {:style (merge h-box-styles)}
-                :pull-view {:style (merge h-box-styles
-                                          {:padding "8px 15px" :width "100%"}
-                                          bordered-box-style)}
-                ;; I guess controls works a bit differently?
-                :controls {:style (merge h-box-styles
-                                         {:padding "3px"})}
-                :pull-view-summary {:style (merge v-box-styles
-                                                  {:padding "15px"
-                                                   :font-size "18px"
-                                                   :font-weight "bold"})}}
-   :controls default-controls})
-
-   ;; Stuff for pull-data-view controls and such
-        ;[re-com/v-box
-         ;;:padding "10px"
-         ;:style style
-         ;:gap "10px"
-         ;:children [;; Little title bar thing with controls
-                    ;(when controls
-                      ;[re-com/h-box
-                       ;:justify :end
-                       ;:padding "15px"
-                       ;:gap "10px"
-                       ;;:style {:background "#DADADA"}
-                       ;:children [controls conn]])]]
-
-                    ;[re-com/h-box
-                     ;;:align :center
-                     ;:gap "10px"
-                     ;:children [[re-com/v-box
-                                 ;:padding "15px"
-                                 ;:children [[entity-summary conn eid]]]
-                                ;[re-com/v-box
-                                 ;:children (for [[attr-ident values] pull-data]
-                                             ;;; Dynamatch the id functions?
-                                             ;^{:key (hash attr-ident values)}
-                                             ;[attribute-values-view conn attr-ident values])]]]
+(def default-mappings (r/atom {}))
 
 (defn box
   "Prefers children over child"
@@ -194,7 +147,7 @@
       (reaction
         ;(update-in
           (utils/deep-merge
-            default-mappings
+            @default-mappings
             @(default-config conn)
             (or (utils/deref-or-value (:datview/spec view-spec))
                 view-spec))))))
@@ -567,3 +520,50 @@
               (sort-by @(attr-sort-by conn attr-ident) values)
               (sort values))))
 
+;; Have to do this after everything else so this can reference all of the control components (etc)
+(reset! default-mappings
+  {:attributes {:attr-values-view {:style h-box-styles}
+                :value-view {:style (merge h-box-styles
+                                           {:padding "3px"})}
+                :attr-view  {:style (merge v-box-styles
+                                           {:padding "5px 12px"})}
+                :label-view {:style {:font-size "14px"
+                                     :font-weight "bold"}}
+                ;:pull-view {:style (merge h-box-styles)}
+                :pull-view {:style (merge h-box-styles
+                                          {:padding "8px 15px" :width "100%"}
+                                          bordered-box-style)}
+                ;; I guess controls works a bit differently?
+                :controls {:style (merge h-box-styles
+                                         {:padding "3px"})}
+                :pull-view-summary {:style (merge v-box-styles
+                                                  {:padding "15px"
+                                                   :font-size "18px"
+                                                   :font-weight "bold"})}}
+   :controls default-controls})
+
+   ;; Stuff for pull-data-view controls and such
+        ;[re-com/v-box
+         ;;:padding "10px"
+         ;:style style
+         ;:gap "10px"
+         ;:children [;; Little title bar thing with controls
+                    ;(when controls
+                      ;[re-com/h-box
+                       ;:justify :end
+                       ;:padding "15px"
+                       ;:gap "10px"
+                       ;;:style {:background "#DADADA"}
+                       ;:children [controls conn]])]]
+
+                    ;[re-com/h-box
+                     ;;:align :center
+                     ;:gap "10px"
+                     ;:children [[re-com/v-box
+                                 ;:padding "15px"
+                                 ;:children [[entity-summary conn eid]]]
+                                ;[re-com/v-box
+                                 ;:children (for [[attr-ident values] pull-data]
+                                             ;;; Dynamatch the id functions?
+                                             ;^{:key (hash attr-ident values)}
+                                             ;[attribute-values-view conn attr-ident values])]]]
