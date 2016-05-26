@@ -71,7 +71,6 @@ lein repl
 Wait for the prompt, then type
 
 ```
-(ns user)
 (run)
 ```
 

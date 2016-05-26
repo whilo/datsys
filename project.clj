@@ -56,6 +56,7 @@
   :resource-paths ["resources" "resources-index/prod"]
   :target-path "target/%s"
   :main ^:skip-aot catalysis.run
+  :repl-options {:init-ns user}
   :cljsbuild {:builds {:client {:source-paths ["src/catalysis/client" "src/datview"]
                                 :compiler {:output-to "resources/public/js/app.js"
                                            :output-dir "dev-resources/public/js/out"}}
