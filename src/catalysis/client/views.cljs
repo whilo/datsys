@@ -2,6 +2,7 @@
   "# Views"
   (:require [catalysis.client.ws :as ws]
             [datview.core :as datview]
+            [datview.forms :as forms]
             [posh.core :as posh]
             [reagent.core :as r]
             [re-com.core :as re-com]
@@ -26,15 +27,11 @@
 
 ;; The simplest of examples:
 
-;(defonce spec-atom (r/atom {}))
-;(reset! spec-atom {:attributes {:attr-view {:style {:background-color "pink"}}}})
-
-
 (def base-todo-view
-  ^{:attributes {:attr-view {:style {:background-color "white"}}}
+  ^{:attributes {:attr-view {:style {:background-color ""}}}
     :summary datview/pull-summary-view}
   ;^{:datview/spec spec-atom}
-  [:e/name :e/description {:e/category [:e/name]} :e/tags])
+  [:db/id :e/name :e/description {:e/category [:e/name]} :e/tags])
 
 ;; We could call (datview/pull-view conn base-todo-view eid) and get a hiccup view of the 
 
@@ -66,7 +63,10 @@
      :children [[:h2 "Todos"]
                 (for [todo todo-eids]
                   ^{:key todo}
-                  [datview/pull-view conn (todo-view 1) todo])]]))
+                  [:div {:margin "10px"}
+                   ;; Should be using shared reaction here?
+                   [forms/pull-form conn (todo-view 1) todo]
+                   [datview/pull-view conn (todo-view 1) todo]])]]))
 
 (defn main [conn]
   [re-com/v-box

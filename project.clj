@@ -65,8 +65,7 @@
                                              :asset-path "js/compiled/devcards_out"
                                              :output-to  "resources/public/js/{{your lib name}}_devcards.js"
                                              :output-dir "resources/public/js/devcards_out"
-                                             :source-map-timestamp true}}}} 
-                
+                                             :source-map-timestamp true}}}}
   :figwheel {:server-port 3448
              :repl true}
   :profiles {:dev-config {}
