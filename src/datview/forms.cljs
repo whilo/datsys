@@ -4,6 +4,9 @@
   (:require [posh.core :as posh]
             [datview.router :as router]
             [datview.core :as datview]
+            [datview.query :as query]
+            ;; Need to switch to datview XXX
+            [catalysis.shared.utils :as utils]
             [datview.old :as old]
             [catalysis.client.ws :as ws]
             [reagent.core :as r]
@@ -22,7 +25,7 @@
 
 
 
-(declare edit-entity-fieldset)
+(declare pull-form)
 
 ;; TODO XXX Not sure yet how to abstract around this; general event handlers probably
 ;; Must solve before abstraction
@@ -54,7 +57,7 @@
                                 :in $ % ?attr-ident
                                 :where (attr-ident-value-type-ident ?attr-ident ?value-type-ident)]
                               @conn
-                              old/rules
+                              query/rules
                               attr-ident)]
     (fn [new-value]
       (let [old-value @current-value
@@ -173,25 +176,35 @@
                                                          [[:db/retract eid attr-ident old-value]])
                                                        [[:db/add eid attr-ident new-value]]))))])))
 
+
+(defn nested-pull-expression
+  [])
+
 (defn input-for
-  ([conn eid attr-ident value]
+  ([conn context pull-expr eid attr-ident value]
    ;; XXX TODO Need to base this on the generalized stuff
    (when-let [attr @(datview/attribute-signature-reaction conn attr-ident)]
-     (match [attr]
+     (match [attr context]
+       ;; The first two forms here have to be compbined and the decision about whether to do a dropdown
+       ;; left as a matter of the context (at least for customization); For now leaving though... XXX
        ;; We have an isComponent ref; do nested form
-       [{:db/valueType :db.type/ref :db/isComponent true}]
-       [edit-entity-fieldset conn value]
+       ;; Should this clause just be polymorphic on whether value is a map or not?
+       [{:db/valueType :db.type/ref :db/isComponent true} _]
+       [pull-form conn context (get pull-expr value) value]
+       ;; This is where we can insert something that catches certain things and handles them separately, depending on context
+       ;[{:db/valueType :db.type/ref} {:datview.level/attr {?}}]
+       ;[pull-form conn context (get pull-expr value)]
        ;; Non component entity; Do dropdown select...
-       [{:db/valueType :db.type/ref}]
+       [{:db/valueType :db.type/ref} _]
        [select-entity-input conn eid attr-ident value]
        ;; Need separate handling of datetimes
-       [{:db/valueType :db.type/instant}]
+       [{:db/valueType :db.type/instant} _]
        [datetime-selector conn eid attr-ident value]
        ;; Booleans should be check boxes
-       [{:db/valueType :db.type/boolean}]
+       [{:db/valueType :db.type/boolean} _]
        [boolean-selector conn eid attr-ident value]
        ;; For numeric inputs, want to style a little differently
-       [{:db/valueType (:or :db.type/float :db.type/double :db.type/integer :db.type/long)}]
+       [{:db/valueType (:or :db.type/float :db.type/double :db.type/integer :db.type/long)} _]
        [re-com/input-text
         :model (str value)
         :width "130px"
@@ -319,11 +332,11 @@
                 (create-type-reference conn eid attr-ident @selected-type)
                 (reset! selected-type nil)
                 false)
-        config (datview/component-config)]
+        config (datview/component-config conn (meta pull-expr))]
         ;; XXX Need to add sorting functionality here...
     (fn [conn pull-expr eid attr-ident value]
       ;; Ug... can't get around having to duplicate :field and label-view
-      ;(when @(posh/q conn '[:find ?eid :in $ ?eid :where [?eid]]) ...)
+      (when @(posh/q conn '[:find ?eid :in $ ?eid :where [?eid]])
         (let [card @(posh/q conn
                             '[:find (pull ?card [*]) .
                               :in $ ?attr-ident
@@ -331,8 +344,8 @@
                                      [?attr :db/cardinality ?card]]
                             attr-ident)
               type-idents @(attr-ident-types conn attr-ident)]
-          [:div (get-in @config [:attributes :field-for])
-           [:div (get-in @config [:controls])]]
+          [:div (get-in @config [:datview.level/attr :datview/controls :datview/field-for])
+           [:div (get-in @config [:datview.level/attr :datview/controls])]]
           [field-for-skeleton conn attr-ident 
             ;; Right now these can't "move" because they don't have keys XXX Should fix with another component
             ;; nesting...
@@ -349,29 +362,13 @@
              (when @activate-type-selector?
                [re-com/modal-panel
                 :child [attr-type-selector type-idents selected-type ok-fn cancel-fn]])]
-            ;; Then for the actual values
-            (for [value (or (seq @values) [nil])]
+            ;; Then for the actual value...
+            (for [value (let [value (utils/deref-or-value value)]
+                          (or
+                            (and (coll? value) (seq value))
+                            [value]))]
               ^{:key (hash {:component :field-for :eid eid :attr-ident attr-ident :value value})}
-              [input-for conn eid attr-ident value])]))))
-
-
-;; Ugh... this is terrible; need to replace the other ordered-attributes with this one, since I think this one
-;; is better written and a little more extensible
-;; Umm... I may have done this to some extent already; look at ordered-attributes above
-;; One way or the other need to standardize
-(defn ordered-attributes2
-  [conn eid]
-  (let [grouped-attr-idents (group-by (fn [[attr-type-ident iscomp _]]
-                                        (if (= attr-type-ident :db.type/ref)
-                                          [:db.type/ref iscomp]
-                                          :other))
-                                      @(signed-attributes conn eid))]
-    (->> (concat (grouped-attr-idents :other)
-                 (grouped-attr-idents [:db.type/ref false])
-                 (grouped-attr-idents [:db.type/ref true]))
-         (map last)
-         (filter visible-attribute?))))
-
+              [input-for conn config pull-expr eid attr-ident value])])))))
 
 (defn get-remote-eid
   [conn eid]
@@ -389,85 +386,6 @@
 
 
 ;; Let's do a thing where we have 
-(defn edit-entity-fieldset-skeleton
-  [conn eid children]
-  [re-com/v-box
-   :style {:border "3px solid grey"
-           ;:background styles/light-grey ;; Should either put styles in the db, or pass as args...
-           :flex-flow "column wrap"
-           :padding "10px"
-           :margin "10px"}
-   :children [[re-com/h-box
-               :gap "8px"
-               ;:justify :end
-               :style {:padding-bottom "5px"}
-               :children [[entity-summary conn eid]
-                          [re-com/gap :size "1"]
-                          ;; Add copy entity? Flexible way of adding other controls?
-                          [re-com/md-icon-button :md-icon-name "zmdi-close-circle"
-                                                 :on-click (partial delete-entity-handler conn eid)
-                                                 :tooltip "Delete entity"]]]
-              ;; Need to sort by attribute type and is component (and sortables) XXX
-              [re-com/v-box
-               :style {:flex-flow "column wrap"}
-               :children children]]])
-
-
-(defn edit-entity-fieldset
-  [conn eid]
-  (if-let [eid (and eid @(posh/q conn '[:find ?eid . :in $ ?eid :where [?eid]] eid))]
-    ;; This admittedly looks a little hacky... And we aren't even taking order into consideration yet. Will
-    ;; really need to clean all this up into something that can be shared by the view and edit components XXX
-    (let [grouped-attr-idents (group-by (fn [[attr-type-ident iscomp _]]
-                                          (if (= attr-type-ident :db.type/ref)
-                                            [:db.type/ref iscomp]
-                                            :other))
-                                        @(signed-attributes conn eid))
-          main-attributes (->> (concat (grouped-attr-idents :other)
-                                       (grouped-attr-idents [:db.type/ref false]))
-                               (map last)
-                               (filter visible-attribute?))
-          component-attributes (->> (grouped-attr-idents [:db.type/ref true]) 
-                                    (map last)
-                                    (filter visible-attribute?))]
-      ;; Not actually using fieldsets because they don't seem to let us apply flexbox styling.
-      (let [fields-for (fn [attr-idents]
-                         [re-com/h-box
-                          :gap "10px"
-                          :style {:flex-flow "row wrap"}
-                          :children
-                          (for [attr-ident attr-idents]
-                            ^{:key (hash {:attr-ident attr-ident})}
-                            [field-for conn eid attr-ident])])]
-        ;; Not sure if I want to keep these things separate like this and forgo the fields-for fn above
-        ;; May help fix bug
-        [edit-entity-fieldset-skeleton conn eid
-         [[re-com/h-box
-           :gap "10px"
-           :style {:flex-flow "row wrap"}
-           :children (for [attr-ident main-attributes]
-                       ^{:key (hash {:attr-ident attr-ident})}
-                       [field-for conn eid attr-ident])]
-          [re-com/v-box
-           :gap "10px"
-           :style {:flex-flow "column wrap"}
-           :children (for [attr-ident component-attributes]
-                       ^{:key (hash {:attr-ident attr-ident})}
-                       [field-for conn eid attr-ident])]]]))))
-
-
-(defn pull-data-form
-  ;; Need a config option here for whether state mode should be auto-update or form based.
-  [conn pull-expr data]
-  ;; This eid check was kinda a hack... should see if I can find a way around it
-  (if-let [eid (and eid @(posh/q conn '[:find ?eid . :in $ ?eid :where [?eid]] (:db/id eid)))]
-    ;; Not actually using fieldsets because they don't seem to let us apply flexbox styling.
-    (let [config (component-config conn (meta pull-expr))]
-      [:div (get-in config [:attributes :pull-data-form])
-       (for [attr-spec pull-expr]
-         ^{:key (hash attr-spec)}
-         [field-for conn pull-expr eid attr-ident])])))
-
 (defn loading-notification
   [message]
   [re-com/v-box
@@ -478,30 +396,88 @@
    [[re-com/title :label message]
     [re-com/throbber :size :large]]])
 
+
+(defn pull-expression-context
+  [pull-expr]
+  ;; Have to get this to recursively pull out metadata from reference attributes, and nest it according to context schema XXX
+  (meta pull-expr))
+
+(defn rest-attributes
+  "Grabs attributes corresponding to * pulls, not otherwise fetched at the top level of a pull-expr"
+  ;; Is this something we should cache?
+  [pull-expr pull-data]
+  (->> pull-expr
+       (map (fn [attr-spec]
+              (if (map? attr-spec)
+                (keys attr-spec)
+                attr-spec)))
+       flatten
+       (remove (keys pull-data))))
+
+
 (defn pull-form
-  [conn pull-expr eid]
-  (if-let [current-data (posh/pull conn pull-expr eid)]
-    [pull-data-form conn pull-expr current-data]
-    [loading-notification "Please wait; loading data."]))
+  "Renders a form with defaults from pull data, or for an existing entity, subject to optional specification of a
+  pull expression (possibly annotated with context metadata), a context map"
+  ;; How to make this language context based...
+  ([conn pull-data-or-eid]
+   (println "pull-form 2")
+   (pull-form conn '[*] pull-data-or-eid))
+  ([conn pull-expr pull-data-or-eid]
+   (println "pull-form 3")
+   (pull-form conn (pull-expression-context pull-expr) pull-expr pull-data-or-eid))
+  ([conn context pull-expr pull-data-or-eid]
+   (println "pull-form 4")
+   (if (integer? pull-data-or-eid)
+     (if-let [current-data @(posh/pull conn pull-expr pull-data-or-eid)]
+       [pull-form conn context pull-expr current-data]
+       [loading-notification "Please wait; loading data."])
+     ;; The meat of the logic
+     (let [config @(datview/component-config conn context)]
+       [:div ;(get-in config [:attributes :pull-data-form])
+        ;; Can you doubly nest for loops like this? XXX WARN
+        (println "Here we are:" pull-expr)
+        (for [attr-spec pull-expr]
+          ^{:key (hash attr-spec)}
+          (cond
+            ;; Here we have a map of reference attr-idents to nested pull expressions
+            (map? attr-spec)
+            ^{:key (hash attr-spec)}
+            [:div {}
+             (for [[attr-ident inner-pull-expr] attr-spec]
+               ^{:key (hash attr-ident)}
+               ;; Here we use the inner-pull-expr but maybe we need to assoc the parent in?
+               [field-for conn pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
+            ;; If '* handle specially; Grab "all other" not expressed in attr, more or less...
+            (= attr-spec '*)
+            ^{:key (hash attr-spec)}
+            [:div {}
+             (for [attr-ident (rest-attributes pull-expr pull-data-or-eid)]
+               ;; Do we use inner-pull-expr here?
+               ^{:key (hash attr-ident)}
+               [field-for conn pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
+            ;; If not a map, then this attr-spec should be an attr-ident, so we use it as such
+            :else
+            [field-for conn pull-expr (:db/id pull-data-or-eid) attr-spec (get pull-data-or-eid attr-spec)]))]))))
 
+;; We should use this to grab the pull expression for a given chunk of data
+;(defn pull-expr-for-data
 
-
-(defn edit-entity-form
-  [conn remote-eid]
-  (if-let [eid @(posh/q conn '[:find ?e . :in $ ?remote-eid :where [?e :datsync.remote.db/id ?remote-eid]] remote-eid)]
-    [re-com/v-box :children [[edit-entity-fieldset conn eid]]]
-    [loading-notification "Please wait; the entity is loading."]))
+;(defn edit-entity-form
+  ;[conn remote-eid]
+  ;(if-let [eid @(posh/q conn '[:find ?e . :in $ ?remote-eid :where [?e :datsync.remote.db/id ?remote-eid]] remote-eid)]
+    ;[re-com/v-box :children [[pull-data-form conn eid]]]
+    ;[loading-notification "Please wait; form data is loading."]))
 
 
 ;; These are our new goals
 
-(defn pull-data-form
-  [conn pull-expr eid]
-  (if-let [current-data @(posh/pull conn pull-expr eid)]
-    [re-com/v-box :children [[edit-entity-fieldset conn eid]]]
-    [loading-notification "Please wait; loading data."]))
+;(defn pull-data-form
+  ;[conn pull-expr eid]
+  ;(if-let [current-data @(posh/pull conn pull-expr eid)]
+    ;[re-com/v-box :children [[edit-entity-fieldset conn eid]]]
+    ;[loading-notification "Please wait; loading data."]))
 
-(defn pull-form
-  [conn pull-expr eid])
+;(defn pull-form
+  ;[conn pull-expr eid])
 
 
