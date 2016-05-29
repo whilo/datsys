@@ -436,28 +436,27 @@
        [:div ;(get-in config [:attributes :pull-data-form])
         ;; Can you doubly nest for loops like this? XXX WARN
         (for [attr-spec (distinct pull-expr)]
-          ^{:key (hash attr-spec)}
-          (cond
-            ;; Here we have a map of reference attr-idents to nested pull expressions
-            (map? attr-spec)
-            ^{:key (hash attr-spec)}
-            [:div {}
-             (for [[attr-ident inner-pull-expr] attr-spec]
-               ^{:key (hash attr-ident)}
-               ;; Here we use the inner-pull-expr but maybe we need to assoc the parent in?
-               [field-for conn pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
-            ;; If '* handle specially; Grab "all other" not expressed in attr, more or less...
-            (= attr-spec '*)
-            ^{:key (hash attr-spec)}
-            [:div {}
-             (for [attr-ident (rest-attributes pull-expr pull-data-or-eid)]
-               ;; Do we use inner-pull-expr here?
-               ^{:key (hash attr-ident)}
-               [field-for conn pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
-            ;; If not a map, then this attr-spec should be an attr-ident, so we use it as such
-            :else
-            ^{:key (hash attr-spec)}
-            [field-for conn pull-expr (:db/id pull-data-or-eid) attr-spec (get pull-data-or-eid attr-spec)]))]))))
+          (with-meta
+            (cond
+              ;; Here we have a map of reference attr-idents to nested pull expressions
+              (map? attr-spec)
+              [:div {}
+               (for [[attr-ident inner-pull-expr] attr-spec]
+                 ^{:key (hash attr-ident)}
+                 ;; Here we use the inner-pull-expr but maybe we need to assoc the parent in?
+                 [field-for conn pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
+              ;; If '* handle specially; Grab "all other" not expressed in attr, more or less...
+              (= attr-spec '*)
+              [:div {}
+               (for [attr-ident (rest-attributes pull-expr pull-data-or-eid)]
+                 ;; Do we use inner-pull-expr here?
+                 ^{:key (hash attr-ident)}
+                 [field-for conn pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
+              ;; If not a map, then this attr-spec should be an attr-ident, so we use it as such
+              :else
+              [field-for conn pull-expr (:db/id pull-data-or-eid) attr-spec (get pull-data-or-eid attr-spec)])
+            ;; React id
+            {:key (hash attr-spec)}))]))))
 
 ;; We should use this to grab the pull expression for a given chunk of data
 ;(defn pull-expr-for-data
