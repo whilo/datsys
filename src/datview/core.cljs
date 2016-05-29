@@ -81,29 +81,35 @@
 
 
 
-;; ## Defaults
+;; ## Context
 
-(def default-config
+;; We're going to be re-describing things in terms of context.
+;; Context includes configuration and contextual information about where things are.
+;; But it is extensible, so we can pass through whatever information we might like about how to render things.
+
+;; All of these should be checked for their semantics on :datview.base-context/value etc; Is this the right way to represent these things?
+
+(def base-context
   ;; Not sure if this memoize will do what I'm hoping it does (:staying-alive true, effectively)
   (memoize
     (fn [conn]
       ;; Hmm... should we just serialize the structure fully?
       ;; Adds complexity around wanting to have namespaced attribute names for everything
-      (reaction (:datview.default-config/value @(posh/pull conn '[*] [:db/ident :datview/default-config]))))))
+      (reaction (:datview.base-context/value @(posh/pull conn '[*] [:db/ident :datview/base-context]))))))
 
-(defn update-default-config!
+(defn update-base-context!
   [conn f & args]
   (letfn [(txf [db]
             (apply update
-                   (d/pull db '[*] [:db/ident :datview/default-config])
-                   :datview.default-config/value
+                   (d/pull db '[*] [:db/ident :datview/base-context])
+                   :datview.base-context/value
                    f
                    args))]
     (d/transact! conn [[:db.fn/call txf]])))
 
-(defn set-default-config!
-  [conn config]
-  (update-default-config! conn (constantly config)))
+(defn set-base-context!
+  [conn context]
+  (update-base-context! conn (constantly context)))
 
 
 
@@ -140,13 +146,13 @@
          (swap! cache assoc (meta-sig args) new-val)
          new-val)))))
   
-(def component-config
+(def component-context
   (memoize
     (fn [conn view-spec]
       (reaction
         (utils/deep-merge
           @default-mappings
-          @(default-config conn)
+          @(base-context conn)
           ;; Should name :datview/spec better and clarify in documentation
           (or (utils/deref-or-value (:datview/spec view-spec))
               view-spec))))))
@@ -155,7 +161,7 @@
   (memoize
     (fn [conn view-spec component-key]
       ;; derived-attributes? TODO XXX
-      (-> @(component-config conn view-spec)
+      (-> @(component-context conn view-spec)
           :attributes
           (get component-key)
           reaction))))
@@ -236,11 +242,11 @@
 ;; Some basic schema that needs to be transacted into the database in order for these functions to work
 
 (def base-schema
-  {:datview.default-config/value {}})
+  {:datview.base-context/value {}})
 
 (def default-settings
-  [{:db/ident :datview/default-config
-    :datview.default-config/value {}}])
+  [{:db/ident :datview/base-context
+    :datview.base-context/value {}}])
 
 ;; Have to think about how styles should be separated from container structure, etc, and how things like
 ;; little control bars can be modularly extended, etc.
@@ -373,8 +379,8 @@
 
 (defn field-for-controls
   [conn pull-expr pull-data]
-  (let [config (component-config conn (meta pull-expr))]
-    [:div (get-in config [:attributes :controls])]))
+  (let [context (component-context conn (meta pull-expr))]
+    [:div (get-in context [:attributes :controls])]))
 
 ;(defn)
 
@@ -400,7 +406,7 @@
     [:p "Click the arrow to see more"]))
 
   
-;; Should we have a macro for building these components and dealing with all the state in the config? Did the merge for you?
+;; Should we have a macro for building these components and dealing with all the state in the context? Did the merge for you?
 ;(defn build-view-component)
 
 (defn attr-values-view
@@ -476,13 +482,13 @@
   ;; Should be able to bind the data to the type dictated by pull expr
   ([conn, pull-expr, pull-data]
    ;; Annoying to have to do this
-   (let [config @(component-config conn (meta pull-expr))
+   (let [context @(component-context conn (meta pull-expr))
          pull-data (utils/deref-or-value pull-data)]
-     [:div (get-in config [:attributes :pull-view])
-      [:div (get-in config [:attributes :pull-view-summary])
-        (when-let [controls (get-in config [:controls :pull-view])]
+     [:div (get-in context [:attributes :pull-view])
+      [:div (get-in context [:attributes :pull-view-summary])
+        (when-let [controls (get-in context [:controls :pull-view])]
           [controls conn pull-expr pull-data])
-        (when-let [summary (:summary config)]
+        (when-let [summary (:summary context)]
           [:div {:style (merge h-box-styles)}
            [summary conn pull-expr pull-data]])]
       ;; XXX TODO Questions:

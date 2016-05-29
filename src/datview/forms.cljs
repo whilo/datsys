@@ -332,7 +332,7 @@
                 (create-type-reference conn eid attr-ident @selected-type)
                 (reset! selected-type nil)
                 false)
-        config (datview/component-config conn (meta pull-expr))]
+        config (datview/component-context conn (meta pull-expr))]
         ;; XXX Need to add sorting functionality here...
     (fn [conn pull-expr eid attr-ident value]
       ;; Ug... can't get around having to duplicate :field and label-view
@@ -432,11 +432,10 @@
        [pull-form conn context pull-expr current-data]
        [loading-notification "Please wait; loading data."])
      ;; The meat of the logic
-     (let [config @(datview/component-config conn context)]
+     (let [config @(datview/component-context conn context)]
        [:div ;(get-in config [:attributes :pull-data-form])
         ;; Can you doubly nest for loops like this? XXX WARN
-        (println "Here we are:" pull-expr)
-        (for [attr-spec pull-expr]
+        (for [attr-spec (distinct pull-expr)]
           ^{:key (hash attr-spec)}
           (cond
             ;; Here we have a map of reference attr-idents to nested pull expressions
@@ -457,6 +456,7 @@
                [field-for conn pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
             ;; If not a map, then this attr-spec should be an attr-ident, so we use it as such
             :else
+            ^{:key (hash attr-spec)}
             [field-for conn pull-expr (:db/id pull-data-or-eid) attr-spec (get pull-data-or-eid attr-spec)]))]))))
 
 ;; We should use this to grab the pull expression for a given chunk of data
