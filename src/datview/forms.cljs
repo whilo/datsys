@@ -176,9 +176,6 @@
                                                        [[:db/add eid attr-ident new-value]]))))])))
 
 
-(defn nested-pull-expression
-  [])
-
 (defn input-for
   ([conn context pull-expr eid attr-ident value]
    ;; XXX TODO Need to base this on the generalized stuff
@@ -190,11 +187,13 @@
        ;; Should this clause just be polymorphic on whether value is a map or not?
        [{:db/valueType :db.type/ref :db/isComponent true} _]
        ;; Need to assoc in the root node context here
-       (let [sub-expr (some #(get % value) pull-expr)
+       (let [sub-expr (some #(get % attr-ident) pull-expr) ;; XXX This may not handle a ref not in {}
+             ;; Need to handle situation of a recur point ('...) as a specification; Should be the context pull root, or the passed in expr, if needed
+             sub-expr (if (= sub-expr '...) (or (:datview/root-pull-expr context) pull-expr) sub-expr)
              context (if (:datview/root-pull-expr context)
                        context
                        (assoc context :datview/root-pull-expr pull-expr))]
-         (println)
+         (println "Sub-expr:" sub-expr) 
          [pull-form conn context sub-expr value])
        ;; This is where we can insert something that catches certain things and handles them separately, depending on context
        ;[{:db/valueType :db.type/ref} {:datview.level/attr {?}}]

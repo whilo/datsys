@@ -184,7 +184,7 @@
 ;; ### Attribute metadata reactions
 
 (def attribute-schema-reaction
-  "Returns the corresponding attr-ident entry from `datomic-schema-index-reaction`."
+  "Returns the corresponding attr-ident entry from the Datomic schema"
   (memoize
     (fn [conn attr-ident]
       (if (= attr-ident :db/id)
