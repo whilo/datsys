@@ -383,7 +383,7 @@
   [conn pull-expr pull-data]
   (let [pull-data (utils/deref-or-value pull-data)
         view-spec (meta pull-expr)]
-    [:div (:dom/attrs @(component-context conn ::pull-view-controls {:datview/locals (meta pull-expr)})) 
+    [:div (:dom/attrs @(component-context conn ::pull-view-controls {:datview/locals (meta pull-expr)}))
      [re-com/md-icon-button :md-icon-name "zmdi-copy"
                             :style {:margin-right "10px"}
                             :tooltip "Copy entity"
@@ -428,11 +428,20 @@
 
 (defn attr-values-view
   [conn pull-expr attr-ident values]
-  [:div (:dom/attrs @(component-context conn ::attr-values-view {:datview/locals (meta pull-expr)})) 
-  ;[:div @(attribute-context conn (meta pull-expr) :attr-values-view)
-   (for [value (utils/deref-or-value values)]
-     ^{:key (hash value)}
-     [value-view conn pull-expr attr-ident value])])
+  (let [context @(component-context conn ::attr-values-view {:datview/locals (meta pull-expr)})
+        collapsable? (:datview.collapse/collapsable? context)
+        ;; Should put all of the collapsed values in something we can serialize, so we always know what's collapsed
+        collapse-attribute? (r/atom (:datview.collapse/default context))]
+    (fn [conn pull-expr attr-ident values]
+      [:div (:dom/attrs context)
+       (when collapsable?
+         [collapse-button collapse-attribute?])
+       (when (or (not collapsable?) (and collapsable? @collapse-attribute?))
+         ^{:key 1}
+         [collapse-summary conn attr-ident values]
+         (for [value (utils/deref-or-value values)]
+           ^{:key (hash value)}
+           [value-view conn pull-expr attr-ident value]))])))
 
 
 (defn cardinality
@@ -449,30 +458,6 @@
      [attr-values-view conn pull-expr attr-ident values]
      :else
      [value-view conn pull-expr attr-ident values])])
-
-
-;(defn attribute-values-view
-  ;[conn attr-ident values]
-  ;;; This is hacky, take out for datview and query...
-  ;(let [collapsable? false ;; Need to get this to dispatch... XXX Or should maybe just default to true for all non-component refs
-        ;collapse-attribute? (r/atom false)
-        ;;; Need to make this polymorphic/dispatchable
-        ;sort-by-key :e/order
-        ;sorted-values (reaction (map :db/id (sort-by sort-by-key @(pull-many-rx conn '[:db/id :e/order] values))))]
-    ;(fn [conn attr-ident values]
-      ;[re-com/v-box
-       ;:padding "8px"
-       ;:gap "8px"
-       ;:children [[re-com/h-box
-                   ;:children [(when collapsable?
-                                ;[collapse-button collapse-attribute?])
-                              ;[label-view conn attr-ident]]]
-                  ;(if (and collapsable? @collapse-attribute?)
-                    ;^{:key 1}
-                    ;[collapse-summary conn attr-ident values]
-                    ;(for [value @values-rx]
-                      ;^{:key (hash {:component :attr-view :value value})}
-                      ;[value-view conn attr-ident value]))]])))
 
 
 ;; ## Security
@@ -556,12 +541,17 @@
 ;; Setting default context; Comes in precedence even before the DS context
 ;; But should this be config technically?
 ;; Note: There are function values in here, so some of this would not be writable to Datomic; But at least some of it could be...)
-(reset! default-mappings
+;(reset! default-mappings
+(swap! default-mappings
+  utils/deep-merge
   ;; Top level just says that this is our configuration? Or is that not necessary?
   {:datview/base-config
    {::attr-values-view
     {:dom/attrs {:style h-box-styles}
-     :datview/component attr-values-view}
+     :datview/component attr-values-view
+     ;; Right now only cardinality many attributes are collapsable; Should be able to set any? Then set for cardinality many as a default? XXX
+     :datview.collapse/collapsable? true
+     :datview.collapse/default false} ;; Default; nothing is collapsed
     ::value-view
     {:dom/attrs {:style (merge h-box-styles
                                {:padding "3px"})}
@@ -576,8 +566,9 @@
      :datview/component label-view}
     ::pull-data-view
     {:dom/attrs {:style (merge h-box-styles
-                               {:padding "8px 15px" :width "100%"}
-                               bordered-box-style)}
+                               bordered-box-style
+                               {:padding "8px 15px"
+                                :width "100%"})}
      :datview/component pull-view}
     ::pull-view-controls
     {:dom/attrs {:style (merge h-box-styles

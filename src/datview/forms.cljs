@@ -32,10 +32,9 @@
 (defn send-tx!
   "Sends the transaction to Datomic via datsync/datomic-tx and ws/chsk-send! (message channel :datsync.remote/tx)"
   [conn tx]
-  (println "Sending tx:" tx)
+  (js/console.log "Sending tx:" tx)
   ;; XXX Need to make datomic-tx more a multimethod on op, so we can properly translate custom txs
   (let [datomic-tx (datsync/datomic-tx conn tx)]
-    ;(js/console.log "Tx translation for datomic: " (pr-str datomic-tx))
     (ws/chsk-send! [:datsync.remote/tx datomic-tx])))
 
 
@@ -190,7 +189,13 @@
        ;; We have an isComponent ref; do nested form
        ;; Should this clause just be polymorphic on whether value is a map or not?
        [{:db/valueType :db.type/ref :db/isComponent true} _]
-       [pull-form conn context (get pull-expr value) value]
+       ;; Need to assoc in the root node context here
+       (let [sub-expr (some #(get % value) pull-expr)
+             context (if (:datview/root-pull-expr context)
+                       context
+                       (assoc context :datview/root-pull-expr pull-expr))]
+         (println)
+         [pull-form conn context sub-expr value])
        ;; This is where we can insert something that catches certain things and handles them separately, depending on context
        ;[{:db/valueType :db.type/ref} {:datview.level/attr {?}}]
        ;[pull-form conn context (get pull-expr value)]
@@ -378,7 +383,7 @@
   [conn eid]
   (when (js/confirm "Delete entity?")
     (let [entity (d/pull @conn [:e/type :datsync.remote.db/id] eid)]
-      (println (str "Deleting entity: " eid))
+      (js/console.log (str "Deleting entity: " eid))
       (match [entity]
         ;; may need the ability to dispatch in here;
         :else
@@ -420,20 +425,17 @@
   pull expression (possibly annotated with context metadata), a context map"
   ;; How to make this language context based...
   ([conn pull-data-or-eid]
-   (println "pull-form 2")
    (pull-form conn '[*] pull-data-or-eid))
   ([conn pull-expr pull-data-or-eid]
-   (println "pull-form 3")
    (pull-form conn (pull-expression-context pull-expr) pull-expr pull-data-or-eid))
   ([conn context pull-expr pull-data-or-eid]
-   (println "pull-form 4")
    (if (integer? pull-data-or-eid)
      (if-let [current-data @(posh/pull conn pull-expr pull-data-or-eid)]
        [pull-form conn context pull-expr current-data]
        [loading-notification "Please wait; loading data."])
      ;; The meat of the logic
-     (let [context @(datview/component-context conn context)]
-       [:div (get-in context [])
+     (let [context @(datview/component-context conn ::pull-form {:datview/locals context})]
+       [:div (:dom/attrs context)
         ;; Can you doubly nest for loops like this? XXX WARN
         (for [attr-spec (distinct pull-expr)]
           (with-meta
@@ -478,5 +480,18 @@
 
 ;(defn pull-form
   ;[conn pull-expr eid])
+
+
+(swap! datview/default-mappings
+  utils/deep-merge
+  ;; Top level just says that this is our configuration? Or is that not necessary?
+  {:datview/base-config
+   {::pull-form
+    {:dom/attrs {:style datview/bordered-box-style}}}
+   ;; Specifications merged in for any config
+   :datview/card-config {}
+   ;; Specifications merged in for any value type
+   :datview/value-type-config {}
+   :datview/attr-config {}})
 
 

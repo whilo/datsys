@@ -60,19 +60,22 @@
 (defn todos-view [conn]
   (let [todo-eids @(type-instance-eids-rx conn :e.type/Todo)]
     [re-com/v-box
+     :margin "20px 5px 5px"
      :children [[:h2 "Todos"]
+                [:p "Below are forms and views for each todo item in the database"]
                 (for [todo todo-eids]
                   ^{:key todo}
-                  [:div {:margin "10px"}
+                  [:div {:style {:margin "20px 5px"}}
                    ;; Should be using shared reaction here?
                    [forms/pull-form conn (todo-view 1) todo]
                    [datview/pull-view conn (todo-view 1) todo]])]]))
 
 (defn main [conn]
   [re-com/v-box
+   :margin "15px"
    :gap "15px"
    :children [[:h1 "Catalysis"]
-              [:p "Congrats! You've got a catalysis app running :-)"]
+              [:p {:style {:font-size "18px"}} "Congrats! You've got a catalysis app running :-)"]
               ;[datview/debug "Here's a debug example:"
                ;@(type-instance-eids-rx conn :e.type/Todo)]
               [todos-view conn]]])
