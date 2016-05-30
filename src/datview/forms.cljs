@@ -319,7 +319,7 @@
 
 ;; Again; need to think about the right way to pass through the attribute data here
 (defn field-for
-  [conn pull-expr eid attr-ident value]
+  [conn context pull-expr eid attr-ident value]
   ;; Should move all this local state in conn db if possible... XXX
   (let [activate-type-selector? (r/atom false)
         selected-type (r/atom nil)
@@ -332,9 +332,9 @@
                 (create-type-reference conn eid attr-ident @selected-type)
                 (reset! selected-type nil)
                 false)
-        config (datview/component-context conn (meta pull-expr))]
+        config (datview/component-context conn context)]
         ;; XXX Need to add sorting functionality here...
-    (fn [conn pull-expr eid attr-ident value]
+    (fn [conn context pull-expr eid attr-ident value]
       ;; Ug... can't get around having to duplicate :field and label-view
       (when @(posh/q conn '[:find ?eid :in $ ?eid :where [?eid]])
         (let [card @(posh/q conn
@@ -349,8 +349,8 @@
           [field-for-skeleton conn attr-ident 
             ;; Right now these can't "move" because they don't have keys XXX Should fix with another component
             ;; nesting...
-            [^{:key (hash :add-reference-button)}
-             (when (and card (= :db.cardinality/many (:db/ident card)))
+            [(when (and card (= :db.cardinality/many (:db/ident card)))
+               ^{:key (hash :add-reference-button)}
                [add-reference-button (fn []
                                        (cond
                                          (> (count type-idents) 1)
@@ -358,8 +358,8 @@
                                          :else 
                                          (create-type-reference conn eid attr-ident (first type-idents))))])
              ;; Need a flexible way of specifying which attributes need special functions associated in form
-             ^{:key (hash :attr-type-selector)}
              (when @activate-type-selector?
+               ^{:key (hash :attr-type-selector)}
                [re-com/modal-panel
                 :child [attr-type-selector type-idents selected-type ok-fn cancel-fn]])]
             ;; Then for the actual value...
@@ -368,7 +368,7 @@
                             (and (coll? value) (seq value))
                             [value]))]
               ^{:key (hash {:component :field-for :eid eid :attr-ident attr-ident :value value})}
-              [input-for conn config pull-expr eid attr-ident value])])))))
+              [input-for conn context pull-expr eid attr-ident value])])))))
 
 (defn get-remote-eid
   [conn eid]
@@ -432,8 +432,8 @@
        [pull-form conn context pull-expr current-data]
        [loading-notification "Please wait; loading data."])
      ;; The meat of the logic
-     (let [config @(datview/component-context conn context)]
-       [:div ;(get-in config [:attributes :pull-data-form])
+     (let [context @(datview/component-context conn context)]
+       [:div (get-in context [])
         ;; Can you doubly nest for loops like this? XXX WARN
         (for [attr-spec (distinct pull-expr)]
           (with-meta
@@ -444,17 +444,17 @@
                (for [[attr-ident inner-pull-expr] attr-spec]
                  ^{:key (hash attr-ident)}
                  ;; Here we use the inner-pull-expr but maybe we need to assoc the parent in?
-                 [field-for conn pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
+                 [field-for conn context pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
               ;; If '* handle specially; Grab "all other" not expressed in attr, more or less...
               (= attr-spec '*)
               [:div {}
                (for [attr-ident (rest-attributes pull-expr pull-data-or-eid)]
                  ;; Do we use inner-pull-expr here?
                  ^{:key (hash attr-ident)}
-                 [field-for conn pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
+                 [field-for conn context pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
               ;; If not a map, then this attr-spec should be an attr-ident, so we use it as such
               :else
-              [field-for conn pull-expr (:db/id pull-data-or-eid) attr-spec (get pull-data-or-eid attr-spec)])
+              [field-for conn context pull-expr (:db/id pull-data-or-eid) attr-spec (get pull-data-or-eid attr-spec)])
             ;; React id
             {:key (hash attr-spec)}))]))))
 

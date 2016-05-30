@@ -42,7 +42,7 @@
 ;; Setting up our two main datsync hooks
 
 ;; General purpose transaction handler
-(defmethod event-msg-handler :datsync.client/tx
+(defmethod event-msg-handler :datsync.remote/tx
   [{:as app :keys [datomic]} {:as event-msg :keys [id ?data]}]
   (log/info "tx recieved from client: " id)
   (let [tx-report @(datsync/apply-remote-tx! (:conn datomic) ?data)]

@@ -22,6 +22,11 @@
             [cljs.core.match :as match :refer-macros [match]]
             #_[markdown.core :as md]))
 
+
+;; Should really remove `conn` everywhere below to `component`, for access to other resources
+
+;; Would be nice to be able to configure this
+
 (enable-console-print!)
 
 
@@ -147,24 +152,34 @@
          new-val)))))
   
 (def component-context
+  "This function returns the component configuration (base-context; should rename) for either an entire render network,
+  abstractly, or for a specific component based on a component id (namespaced keyword matching the function to be called)."
   (memoize
-    (fn [conn view-spec]
-      (reaction
-        (utils/deep-merge
-          @default-mappings
-          @(base-context conn)
-          ;; Should name :datview/spec better and clarify in documentation
-          (or (utils/deref-or-value (:datview/spec view-spec))
-              view-spec))))))
+    (fn component-context*
+      ([conn]
+       (reaction
+         ;; Don't need this arity if we drop the distinction between base-context and default-mappings
+         (utils/deep-merge
+           @default-mappings
+           @(base-context conn))))
+      ([conn component-id]
+       (component-context* conn component-id {}))
+      ([conn component-id {:as options
+                           ;; Options, in order of precedence in consequent merging
+                           :keys [datview/locals ;; points to local overrides; highest precedence
+                                  ;; When the component is in a scope closed over by some particular attribute:
+                                  datview/attr ;; db/ident of the attribute; precedence below locals
+                                  datview/valueType ;; The :db/valueType of the attribute (as ident); lower precedence still
+                                  datview/cardinality]}] ;; Cardinality (ident) of the value type; lowest precedence
+       (reaction
+         (let [merged (utils/deep-merge @(component-context conn) (utils/deref-or-value locals))]
+           ;; Need to also get the value type and card config by the attr-config if that's all that's present; Shouldn't ever
+           ;; really need to pass in manually XXX
+           (utils/deep-merge (get-in merged [:datview/base-config component-id])
+                             (get-in merged [:datview/card-config cardinality component-id])
+                             (get-in merged [:datview/value-type-config valueType component-id])
+                             (get-in merged [:datview/attr-config attr component-id]))))))))
 
-(def attributes-for-component
-  (memoize
-    (fn [conn view-spec component-key]
-      ;; derived-attributes? TODO XXX
-      (-> @(component-context conn view-spec)
-          :attributes
-          (get component-key)
-          reaction))))
 
 ;; ### Attribute metadata reactions
 
@@ -288,7 +303,7 @@
 
 (defn pull-summary-view
   [conn pull-expr pull-data]
-  [:div (pull-summary pull-data)])
+  [:div ( (pull-summary pull-data))])
 
 
 ;; ## Event handler
@@ -363,32 +378,34 @@
 ;; Still have to implement notion of hidden attributes at a database level
 
 
-        ;[controls conn pull-expr pull-data]
-(defn default-pull-view-controls
+;; Still need to hook up with customized context
+(defn pull-view-controls
   [conn pull-expr pull-data]
   (let [pull-data (utils/deref-or-value pull-data)
         view-spec (meta pull-expr)]
-    [:div @(attributes-for-component conn view-spec :controls)
+    [:div (:dom/attrs @(component-context conn ::pull-view-controls {:datview/locals (meta pull-expr)})) 
      [re-com/md-icon-button :md-icon-name "zmdi-copy"
+                            :style {:margin-right "10px"}
                             :tooltip "Copy entity"
                             :on-click (fn [] (js/alert "Coming soon to a database application near you"))]
      [re-com/md-icon-button :md-icon-name "zmdi-edit"
+                            :style {:margin-right "10px"}
                             :tooltip "Edit entity"
                             ;; This assumes the pull has :datsync.remote.db/id... automate?
                             :on-click (fn [] (router/set-route! conn {:handler :edit-entity :route-params {:db/id (:datsync.remote.db/id pull-data)}}))]]))
 
-(defn field-for-controls
+(defn default-field-for-controls
   [conn pull-expr pull-data]
-  (let [context (component-context conn (meta pull-expr))]
-    [:div (get-in context [:attributes :controls])]))
+  (let [context (component-context conn ::default-field-for-controls {:datview/locals (meta pull-expr)})]
+    [:div (:dom/attrs context)])) 
 
 ;(defn)
 
 (defn value-view
   [conn pull-expr attr-ident value]
   (let [attr-sig @(attribute-signature-reaction conn attr-ident)
-        comp-attrs @(attributes-for-component conn (meta pull-expr) :value-view)]
-    [:div comp-attrs
+        context @(component-context conn ::value-view {:datview/locals (meta pull-expr)})]
+    [:div (:dom/attrs context)
      ;[debug "Here is the comp-attrs:" attr-sig]
      (match [attr-sig]
        ;; For now, all refs render the same; May treat component vs non-comp separately later
@@ -411,7 +428,8 @@
 
 (defn attr-values-view
   [conn pull-expr attr-ident values]
-  [:div @(attributes-for-component conn (meta pull-expr) :attr-values-view)
+  [:div (:dom/attrs @(component-context conn ::attr-values-view {:datview/locals (meta pull-expr)})) 
+  ;[:div @(attribute-context conn (meta pull-expr) :attr-values-view)
    (for [value (utils/deref-or-value values)]
      ^{:key (hash value)}
      [value-view conn pull-expr attr-ident value])])
@@ -423,7 +441,8 @@
 ;; Need to have controls etc here
 (defn attr-view
   [conn pull-expr attr-ident values]
-  [:div @(attributes-for-component conn (meta pull-expr) :attr-view)
+  [:div (:dom/attrs @(component-context conn ::attr-view {:datview/locals (meta pull-expr)})) 
+  ;[:div @(attribute-context conn (meta pull-expr) :attr-view)
    [label-view conn pull-expr attr-ident]
    (match [@(attribute-signature-reaction conn attr-ident)]
      [{:db/cardinality :db.cardinality/many}]
@@ -482,12 +501,12 @@
   ;; Should be able to bind the data to the type dictated by pull expr
   ([conn, pull-expr, pull-data]
    ;; Annoying to have to do this
-   (let [context @(component-context conn (meta pull-expr))
+   (let [context @(component-context conn ::pull-data-view {:datview/locals (meta pull-expr)})
          pull-data (utils/deref-or-value pull-data)]
-     [:div (get-in context [:attributes :pull-view])
-      [:div (get-in context [:attributes :pull-view-summary])
-        (when-let [controls (get-in context [:controls :pull-view])]
-          [controls conn pull-expr pull-data])
+     [:div (:dom/attrs context)
+      [:div
+        (when-let [controls @(component-context conn ::pull-view-controls)]
+          [(:datview/component controls) conn pull-expr pull-data])
         (when-let [summary (:summary context)]
           [:div {:style (merge h-box-styles)}
            [summary conn pull-expr pull-data]])]
@@ -533,81 +552,53 @@
               (sort-by @(attr-sort-by conn attr-ident) values)
               (sort values))))
 
-;(reset! default-mappings
-  ;{:attributes {:attr-values-view {:style h-box-styles}
-                ;:value-view {:style (merge h-box-styles
-                                           ;{:padding "3px"})}
-                ;:attr-view  {:style (merge v-box-styles
-                                           ;{:padding "5px 12px"})}
-                ;:label-view {:style {:font-size "14px"
-                                     ;:font-weight "bold"}}
-                ;;:pull-view {:style (merge h-box-styles)}
-                ;:pull-view {:style (merge h-box-styles
-                                          ;{:padding "8px 15px" :width "100%"}
-                                          ;bordered-box-style)}
-                ;;; I guess controls works a bit differently?
-                ;:controls {:style (merge h-box-styles
-                                         ;{:padding "3px"})}
-                ;:pull-view-summary {:style (merge v-box-styles
-                                                  ;{:padding "15px"
-                                                   ;:font-size "18px"
-                                                   ;:font-weight "bold"})}}
-   ;:controls default-pull-view-controls})
 
-
-;; Have to do this after everything else so this can reference all of the control components (etc)
+;; Setting default context; Comes in precedence even before the DS context
+;; But should this be config technically?
+;; Note: There are function values in here, so some of this would not be writable to Datomic; But at least some of it could be...)
 (reset! default-mappings
-  {:datview.level/entity
-   ;; Things that get passed in for a given component's html attributes arg
-   {:datview.html/attrs
-    ;; Keys here are component keys; For entries here which could potentially be attribute specific, such as :attr-view, the entity level settings here are
-    {:datview/attr-values-view {:style h-box-styles}
-     :datview/value-view {:style (merge h-box-styles
-                                        {:padding "3px"})}
-     :datview/attr-view  {:style (merge v-box-styles
-                                        {:padding "5px 12px"})}
-     :datview/label-view {:style {:font-size "14px"
-                                  :font-weight "bold"}}
-     :datview/pull-view {:style (merge h-box-styles
-                                       {:padding "8px 15px" :width "100%"}
-                                       bordered-box-style)}
-     :datview/controls {:style (merge h-box-styles
-                                      {:padding "3px"})}
-     :datview/pull-view-summary {:style (merge v-box-styles
-                                               {:padding "15px"
-                                                :font-size "18px"
-                                                :font-weight "bold"})}}
-    :datview/controls
-    {:pull-view default-pull-view-controls}}
-   ;; These are things that you might want to customize per entity-attribute level; I'm just including some nils for a sense of what this might look like
-   :datview.level/attr
-   {:datview/controls 
-    {:datview/field-for {:default nil
-                         :cardinality-many-default nil}}
-    :datview.html/attrs {}}})
+  ;; Top level just says that this is our configuration? Or is that not necessary?
+  {:datview/base-config
+   {::attr-values-view
+    {:dom/attrs {:style h-box-styles}
+     :datview/component attr-values-view}
+    ::value-view
+    {:dom/attrs {:style (merge h-box-styles
+                               {:padding "3px"})}
+     :datview/component value-view}
+    ::attr-view
+    {:dom/attrs {:style (merge v-box-styles
+                               {:padding "5px 12px"})}
+     :datview/component attr-view}
+    ::label-view
+    {:dom/attrs {:style {:font-size "14px"
+                         :font-weight "bold"}}
+     :datview/component label-view}
+    ::pull-data-view
+    {:dom/attrs {:style (merge h-box-styles
+                               {:padding "8px 15px" :width "100%"}
+                               bordered-box-style)}
+     :datview/component pull-view}
+    ::pull-view-controls
+    {:dom/attrs {:style (merge h-box-styles
+                               {:padding "5px"})}
+                                ;:background "#DADADA"})}
+                                ;;; Check if these actually make sense
+                                ;:justify-content "flex-end"})}}
+                                ;:gap "10px"
+     :datview/component pull-view-controls}
+    ::pull-summary-view
+    {:dom/attrs {:style (merge v-box-styles
+                               {:padding "15px"
+                                :font-size "18px"
+                                :font-weight "bold"})}
+     :datview/component pull-summary-view}
+    ::default-field-for-controls
+    {:datview/component default-field-for-controls}}
+   ;; Specifications merged in for any config
+   :datview/card-config {}
+   ;; Specifications merged in for any value type
+   :datview/value-type-config {}
+   :datview/attr-config {}})
 
-   ;; Stuff for pull-data-view controls and such
-        ;[re-com/v-box
-         ;;:padding "10px"
-         ;:style style
-         ;:gap "10px"
-         ;:children [;; Little title bar thing with controls
-                    ;(when controls
-                      ;[re-com/h-box
-                       ;:justify :end
-                       ;:padding "15px"
-                       ;:gap "10px"
-                       ;;:style {:background "#DADADA"}
-                       ;:children [controls conn]])]]
 
-                    ;[re-com/h-box
-                     ;;:align :center
-                     ;:gap "10px"
-                     ;:children [[re-com/v-box
-                                 ;:padding "15px"
-                                 ;:children [[entity-summary conn eid]]]
-                                ;[re-com/v-box
-                                 ;:children (for [[attr-ident values] pull-data]
-                                             ;;; Dynamatch the id functions?
-                                             ;^{:key (hash attr-ident values)}
-                                             ;[attribute-values-view conn attr-ident values])]]]
