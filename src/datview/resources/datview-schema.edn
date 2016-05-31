@@ -22,7 +22,9 @@
      :db/doc         "The label string of an attribute (for forms and views)"
      :db.install/_attribute :db.part/db}]
    ;; Giving :attribute/label it's own :attribute/label
-   [[:db/add :db.part/db :attribute/label "Attribute Label"]]
+   [[:db/add :attribute/label :attribute/label "Attribute Label"]
+    [:db/add :e/name :attribute/label "Name"]
+    [:db/add :e/description :attribute/label "Description"]]
    [{:db/id          #db/id[:db.part/db]
      :attribute/label "Hide attribute?"
      :db/ident       :attribute/hidden?
