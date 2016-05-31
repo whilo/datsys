@@ -31,7 +31,7 @@
   ^{:attributes {:attr-view {:style {:background-color ""}}}
     :summary datview/pull-summary-view}
   ;^{:datview/spec spec-atom}
-  [:db/id :e/name :e/description {:e/category [:e/name] :e/tags [:e/name]}])
+  [:db/id :e/name :e/description {:e/category [:e/name :e/description] :e/tags [:e/name :e/description]}])
 
 ;; We could call (datview/pull-view conn base-todo-view eid) and get a hiccup view of the 
 

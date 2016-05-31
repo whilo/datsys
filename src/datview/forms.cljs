@@ -179,7 +179,7 @@
 (defn input-for
   ([conn context pull-expr eid attr-ident value]
    ;; XXX TODO Need to base this on the generalized stuff
-   (when-let [attr @(datview/attribute-signature-reaction conn attr-ident)]
+   (let [attr @(datview/attribute-signature-reaction conn attr-ident)]
      (match [attr context]
        ;; The first two forms here have to be compbined and the decision about whether to do a dropdown
        ;; left as a matter of the context (at least for customization); For now leaving though... XXX
@@ -193,7 +193,9 @@
              context (if (:datview/root-pull-expr context)
                        context
                        (assoc context :datview/root-pull-expr pull-expr))]
-         [pull-form conn context sub-expr value])
+         (when-not (and (= (:db/cardinality attr) :db.cardinality/many)
+                        (nil? value))
+           [pull-form conn context sub-expr value]))
        ;; This is where we can insert something that catches certain things and handles them separately, depending on context
        ;[{:db/valueType :db.type/ref} {:datview.level/attr {?}}]
        ;[pull-form conn context (get pull-expr value)]
