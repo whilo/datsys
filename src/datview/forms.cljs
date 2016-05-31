@@ -81,7 +81,8 @@
   {:todo ["Finish..."
           "Create some attribute indicating what entity types are possible values; other rules?"]}
   ([conn eid attr-ident value]
-   (let [options (->>
+   (let [;options @(datview/attribute-signature-reaction conn attr-ident)]
+         options (->>
                    @(posh/q conn
                             '[:find [(pull ?eid [*]) ...]
                               :in $ ?attr-ident
@@ -92,11 +93,12 @@
                             attr-ident)
                    ;; XXX Oh... should we call entity-name entity-label? Since we're really using as the label
                    ;; here?
-                   (mapv (fn [entity] (assoc entity :label (datview/pull-summary entity)
-                                                    :id (:db/id entity))))
+                   (mapv (fn [pull-data] (assoc pull-data :label (datview/pull-summary pull-data)
+                                                          :id (:db/id pull-data))))
                    (sort-by :label))]
      (println "Options are:" options)
-     [select-entity-input conn eid attr-ident value options]))
+     [:div
+      [select-entity-input conn eid attr-ident value options]]))
   ([conn eid attr-ident value options]
    [re-com/single-dropdown
     :style {:min-width "150px"}

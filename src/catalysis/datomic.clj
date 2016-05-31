@@ -12,12 +12,15 @@
 (defn ensure-schema!
   [conn]
   ;; The schema is in `resources/schema.edn`; Note that we make requirements in that schema about having Datview schema loaded
-  (let [schema-data (merge (-> "schema.edn" io/resource slurp read-string)
-                           datview/schema)]
+  (let [schema-data (merge datview/schema
+                           (-> "schema.edn" io/resource slurp read-string))]
     ;; This is where ideally we would be looking at a dependency graph of norms and executing in that order.
     ;; Look at Stuart Sierra's dependency library. XXX
-    (doseq [k (keys schema-data)]
-      (conformity/ensure-conforms conn schema-data [k]))))
+    (try
+      (conformity/ensure-conforms conn schema-data)
+      (catch Exception e
+        (.printStackTrace e)
+        (./pprint (-> e :failed))))))
 
 ;(-> "config/local/seed-data.edn" slurp read-string)
 
@@ -30,25 +33,22 @@
   component/Lifecycle
   (start [component]
     (let [url (-> config :datomic :url)
+          deleted? (d/delete-database url)
           created? (d/create-database url)
           conn (d/connect url)
-          tx-report-queue (d/tx-report-queue conn)]
+          tx-report-queue (d/tx-report-queue conn)
+          component (assoc component :conn conn :tx-report-queue tx-report-queue)]
       ;; XXX Should be a little smarter here and actually test to see if the schema is in place, then transact
       ;; if it isn't. Similarly when we get more robust migrations.
       (log/info "Datomic Starting")
       (ensure-schema! conn)
-      (assoc component :conn conn :tx-report-queue tx-report-queue)))
+      component))
   (stop [component]
     (d/release conn)
     (assoc component :conn nil)))
 
 (defn create-datomic []
   (map->Datomic {}))
-
-(defn delete-database!
-  [component]
-  (-> component :config :datomic :url d/delete-database))
-
 
 (defn bootstrap
   [db]

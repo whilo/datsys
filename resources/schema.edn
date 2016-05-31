@@ -15,7 +15,7 @@
 
 {;; ## Catalysis Domain model
  :catalysis/base-schema
- ;; This is how conformity does dependencies
+ ;; This is how conformity does dependencies (:requires)
  {:requires [:datview/base-schema]
   :txes
   ;; Hmmm... should we have our own partition for datview?
@@ -25,20 +25,12 @@
      :db/ident :e.type/Todo      ;; Types are idents; Currently we refer to type by keyword; needs to change
      :e/type :e.type/Type        ;; Installs this entity as a type
      :e.type/isa :e.type/Entity} ;; not strictly necessary, but let's us talk about all entities as instances of :e.type/Entity
-    {:db/id #db/id[:db.part/user]
-     :db/ident :e.type/Category
-     :e/type :e.type/Type
-     :e.type/isa :e.type/Entity}
-    {:db/id #db/id[:db.part/user]
-     :e/name "Tag"               ;; We don't have to do this; Inferred by ident if not
-     :db/ident :e.type/Tag
-     :e/type :e.type/Type
-     :e.type/isa :e.type/Entity}
-    ;; Time entiries
+    ;; Time entries
     {:db/id #db/id[:db.part/user]
      :e/name "Time Entry"
      :db/ident :e.type/TimeEntry
      :e/type :e.type/Type
+     :e.type/attributes [:e/name :e/description]
      :e.type/isa :e.type/Entity}]
    ;;
    ;; Domain model attributes
@@ -61,8 +53,8 @@
      :db/doc         "Reference to a tasks time entry"
      :db.install/_attribute :db.part/db}
     ;; Time entry attributes
-    [:db/add :e.type/TimeEntry :e.type/attributes :e/name]
-    [:db/add :e.type/TimeEntry :e.type/attributes :e/description]
+    ;[:db/add :e.type/TimeEntry :e.type/attributes :e/name]
+    ;[:db/add :e.type/TimeEntry :e.type/attributes :e/description]
     {:db/id          #db/id[:db.part/db]
      :db/ident       :time.entry/start-time
      :db/valueType   :db.type/instant
