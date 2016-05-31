@@ -5,7 +5,7 @@
 (def schema
   (->> "datview-schema.edn"
        ;; Swap out once a lib XXX TODO
-       (str "src/datview/resources/")
+       (str "../catalysis/src/datview/resources/")
        ;io/resource
        slurp
        read-string))
