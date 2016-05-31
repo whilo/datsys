@@ -27,11 +27,14 @@
 
 ;; The simplest of examples:
 
+(def time-entry
+  [:e/name :time.entry/start-time :time.entry/stop-time :e/description])
+
 (def base-todo-view
   ^{:attributes {:attr-view {:style {:background-color ""}}}
     :summary datview/pull-summary-view}
   ;^{:datview/spec spec-atom}
-  [:db/id :e/name :e/description {:e/category [:e/name :e/description] :e/tags [:e/name :e/description]}])
+  [:db/id :e/name :e/description {:e/category [:e/name :e/description] :e/tags [:e/name :e/description] :todo/time-entries time-entry}])
 
 ;; We could call (datview/pull-view conn base-todo-view eid) and get a hiccup view of the 
 

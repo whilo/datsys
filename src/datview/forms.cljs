@@ -95,6 +95,7 @@
                    (mapv (fn [entity] (assoc entity :label (datview/pull-summary entity)
                                                     :id (:db/id entity))))
                    (sort-by :label))]
+     (println "Options are:" options)
      [select-entity-input conn eid attr-ident value options]))
   ([conn eid attr-ident value options]
    [re-com/single-dropdown
@@ -176,6 +177,7 @@
                                                        [[:db/add eid attr-ident new-value]]))))])))
 
 
+;; Should have this effectively mutlitmethod dispatch using the datview customization functionality
 (defn input-for
   ([conn context pull-expr eid attr-ident value]
    ;; XXX TODO Need to base this on the generalized stuff
