@@ -336,7 +336,7 @@
     (clojure.string/join " " (concat [(clojure.string/capitalize x)] xs))))
 
 (defn label-view
-  [conn pull-expr attr-ident]
+  [conn attr-ident]
   (when attr-ident
     [re-com/label
      :style {:font-size "14px"
@@ -456,7 +456,7 @@
   [conn pull-expr attr-ident values]
   [:div (:dom/attrs @(component-context conn ::attr-view {:datview/locals (meta pull-expr)})) 
   ;[:div @(attribute-context conn (meta pull-expr) :attr-view)
-   [label-view conn pull-expr attr-ident]
+   [label-view conn attr-ident]
    (match [@(attribute-signature-reaction conn attr-ident)]
      [{:db/cardinality :db.cardinality/many}]
      [attr-values-view conn pull-expr attr-ident values]

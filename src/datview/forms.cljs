@@ -342,8 +342,8 @@
     (fn [conn context pull-expr eid attr-ident value]
       ;; Ug... can't get around having to duplicate :field and label-view
       (when @(posh/q conn '[:find ?eid :in $ ?eid :where [?eid]])
-        ;;; Finish rewriting let card below with let attr-sig above it... XXX TODO NOW
         (let [type-idents (:attribute.ref/types attr-sig)]
+          ;; Are controls still separated this way? Should they be? XXX
           [:div (get-in @config [:datview.level/attr :datview/controls :datview/field-for])
            [:div (get-in @config [:datview.level/attr :datview/controls])]]
           [field-for-skeleton conn attr-ident 
