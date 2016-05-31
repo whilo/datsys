@@ -589,12 +589,15 @@
                                 :font-weight "bold"})}
      :datview/component pull-summary-view}
     ::default-field-for-controls
-    {:datview/component default-field-for-controls}}
+    {:datview/component default-field-for-controls}
+    :datview.forms/field-for
+    {:dom/attrs {:style v-box-styles}}}
    ;; Specifications merged in for any config
    :datview/card-config {}
    ;; Specifications merged in for any value type
    :datview/value-type-config {}
-   :datview/attr-config {}})
+   :datview/attr-config {:db/id {:datview.forms/field-for {:attribute/hidden? true
+                                                           :dom/attrs {:style {:display "none"}}}}}})
    ;; Will add the ability to add mappings at the entity level; And perhaps specifically at the type level.
    ;; Use the patterns of OO/types with pure data; Dynamic
 

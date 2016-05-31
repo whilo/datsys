@@ -337,38 +337,40 @@
                 (reset! selected-type nil)
                 false)
         attr-sig (datview/attribute-signature-reaction conn attr-ident)
-        config (datview/component-context conn context)]
+        ;; Oh wait... maybe we can't put this here if context isn't a reaction... This only gets called once...
+        config (datview/component-context conn ::field-for {:datview/locals context :datview/attr attr-ident})]
         ;; XXX Need to add sorting functionality here...
     (fn [conn context pull-expr eid attr-ident value]
       ;; Ug... can't get around having to duplicate :field and label-view
-      (when @(posh/q conn '[:find ?eid :in $ ?eid :where [?eid]])
+      (when (and @(posh/q conn '[:find ?eid :in $ ?eid :where [?eid]])
+                 (not (:attribute/hidden? @config)))
         (let [type-idents (:attribute.ref/types attr-sig)]
           ;; Are controls still separated this way? Should they be? XXX
-          [:div (get-in @config [:datview.level/attr :datview/controls :datview/field-for])
-           [:div (get-in @config [:datview.level/attr :datview/controls])]]
-          [field-for-skeleton conn attr-ident 
-            ;; Right now these can't "move" because they don't have keys XXX Should fix with another component
-            ;; nesting...
-            [(when (= :db.cardinality/many (:db/cardinality @attr-sig))
-               ^{:key (hash :add-reference-button)}
-               [add-reference-button (fn []
-                                       (cond
-                                         (> (count type-idents) 1)
-                                         (reset! activate-type-selector? true)
-                                         :else 
-                                         (create-type-reference conn eid attr-ident (first type-idents))))])
-             ;; Need a flexible way of specifying which attributes need special functions associated in form
-             (when @activate-type-selector?
-               ^{:key (hash :attr-type-selector)}
-               [re-com/modal-panel
-                :child [attr-type-selector type-idents selected-type ok-fn cancel-fn]])]
-            ;; Then for the actual value...
-            (for [value (let [value (utils/deref-or-value value)]
-                          (or
-                            (and (coll? value) (seq value))
-                            [value]))]
-              ^{:key (hash {:component :field-for :eid eid :attr-ident attr-ident :value value})}
-              [input-for conn context pull-expr eid attr-ident value])])))))
+          [:div (:dom/attrs @config)
+           ;[:div (get-in @config [:datview.level/attr :datview/controls])]
+           [field-for-skeleton conn attr-ident 
+             ;; Right now these can't "move" because they don't have keys XXX Should fix with another component
+             ;; nesting...
+             [(when (= :db.cardinality/many (:db/cardinality @attr-sig))
+                ^{:key (hash :add-reference-button)}
+                [add-reference-button (fn []
+                                        (cond
+                                          (> (count type-idents) 1)
+                                          (reset! activate-type-selector? true)
+                                          :else 
+                                          (create-type-reference conn eid attr-ident (first type-idents))))])
+              ;; Need a flexible way of specifying which attributes need special functions associated in form
+              (when @activate-type-selector?
+                ^{:key (hash :attr-type-selector)}
+                [re-com/modal-panel
+                 :child [attr-type-selector type-idents selected-type ok-fn cancel-fn]])]
+             ;; Then for the actual value...
+             (for [value (let [value (utils/deref-or-value value)]
+                           (or
+                             (and (coll? value) (seq value))
+                             [value]))]
+               ^{:key (hash {:component :field-for :eid eid :attr-ident attr-ident :value value})}
+               [input-for conn context pull-expr eid attr-ident value])]])))))
 
 (defn get-remote-eid
   [conn eid]
@@ -415,6 +417,14 @@
        (remove (keys pull-data))))
 
 
+(defn pull-expr-attributes
+  [conn pull-expr]
+  (->> pull-expr
+       (map (fn [x] (if (map? x) (keys x) x)))
+       flatten
+       distinct))
+
+
 (defn pull-form
   "Renders a form with defaults from pull data, or for an existing entity, subject to optional specification of a
   pull expression (possibly annotated with context metadata), a context map"
@@ -432,28 +442,9 @@
      (let [context @(datview/component-context conn ::pull-form {:datview/locals context})]
        [:div (:dom/attrs context)
         ;; Can you doubly nest for loops like this? XXX WARN
-        (for [attr-spec (distinct pull-expr)]
-          (with-meta
-            (cond
-              ;; Here we have a map of reference attr-idents to nested pull expressions
-              (map? attr-spec)
-              [:div {}
-               (for [[attr-ident inner-pull-expr] attr-spec]
-                 ^{:key (hash attr-ident)}
-                 ;; Here we use the inner-pull-expr but maybe we need to assoc the parent in?
-                 [field-for conn context pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
-              ;; If '* handle specially; Grab "all other" not expressed in attr, more or less...
-              (= attr-spec '*)
-              [:div {}
-               (for [attr-ident (rest-attributes pull-expr pull-data-or-eid)]
-                 ;; Do we use inner-pull-expr here?
-                 ^{:key (hash attr-ident)}
-                 [field-for conn context pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]
-              ;; If not a map, then this attr-spec should be an attr-ident, so we use it as such
-              :else
-              [field-for conn context pull-expr (:db/id pull-data-or-eid) attr-spec (get pull-data-or-eid attr-spec)])
-            ;; React id
-            {:key (hash attr-spec)}))]))))
+        (for [attr-ident (pull-expr-attributes conn pull-expr)]
+          ^{:key (hash attr-ident)}
+          [field-for conn context pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]))))
 
 ;; We should use this to grab the pull expression for a given chunk of data
 ;(defn pull-expr-for-data

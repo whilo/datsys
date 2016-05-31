@@ -59,6 +59,7 @@
      :db/cardinality :db.cardinality/one
      :db/doc         "Should this attribute be hidden in views and forms?"
      :db.install/_attribute :db.part/db}]
+   ;[[:db/add :db/id :attribute/hidden? true]]
    ;; Giving :attribute/label it's own :attribute/label
    [[:db/add :db.part/db :attribute/label "Attribute Label"]]
    [;; Not sure we need this; but could come in handy if we want to make type inheritance data driven
