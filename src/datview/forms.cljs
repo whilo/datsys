@@ -193,7 +193,6 @@
              context (if (:datview/root-pull-expr context)
                        context
                        (assoc context :datview/root-pull-expr pull-expr))]
-         (println "Sub-expr:" sub-expr) 
          [pull-form conn context sub-expr value])
        ;; This is where we can insert something that catches certain things and handles them separately, depending on context
        ;[{:db/valueType :db.type/ref} {:datview.level/attr {?}}]
@@ -292,6 +291,7 @@
   ([tooltip on-click-fn]
    [re-com/md-icon-button
     :md-icon-name "zmdi-plus"
+    :size :smaller
     :on-click on-click-fn
     :tooltip tooltip])
   ([on-click-fn]
@@ -336,24 +336,20 @@
                 (create-type-reference conn eid attr-ident @selected-type)
                 (reset! selected-type nil)
                 false)
+        attr-sig (datview/attribute-signature-reaction conn attr-ident)
         config (datview/component-context conn context)]
         ;; XXX Need to add sorting functionality here...
     (fn [conn context pull-expr eid attr-ident value]
       ;; Ug... can't get around having to duplicate :field and label-view
       (when @(posh/q conn '[:find ?eid :in $ ?eid :where [?eid]])
-        (let [card @(posh/q conn
-                            '[:find (pull ?card [*]) .
-                              :in $ ?attr-ident
-                              :where [?attr :db/ident ?attr-ident]
-                                     [?attr :db/cardinality ?card]]
-                            attr-ident)
-              type-idents @(attr-ident-types conn attr-ident)]
+        ;;; Finish rewriting let card below with let attr-sig above it... XXX TODO NOW
+        (let [type-idents (:attribute.ref/types attr-sig)]
           [:div (get-in @config [:datview.level/attr :datview/controls :datview/field-for])
            [:div (get-in @config [:datview.level/attr :datview/controls])]]
           [field-for-skeleton conn attr-ident 
             ;; Right now these can't "move" because they don't have keys XXX Should fix with another component
             ;; nesting...
-            [(when (and card (= :db.cardinality/many (:db/ident card)))
+            [(when (= :db.cardinality/many (:db/cardinality @attr-sig))
                ^{:key (hash :add-reference-button)}
                [add-reference-button (fn []
                                        (cond

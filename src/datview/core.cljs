@@ -25,9 +25,6 @@
 
 ;; Should really remove `conn` everywhere below to `component`, for access to other resources
 
-;; Would be nice to be able to configure this
-
-(enable-console-print!)
 
 
 ;; ## Metadata view specification structure defaults
@@ -184,26 +181,32 @@
 ;; ### Attribute metadata reactions
 
 (def attribute-schema-reaction
-  "Returns the corresponding attr-ident entry from the Datomic schema"
+  "Returns the corresponding attr-ident entry from the Datomic schema. Returns full entity references; Have to path for idents."
   (memoize
     (fn [conn attr-ident]
       (if (= attr-ident :db/id)
         (reaction {:db/id nil})
         (posh/pull conn
-                   '[* {:db/valueType [:db/ident]} {:db/cardinality [:db/ident]}]
+                   '[* {:db/valueType [:db/ident]
+                        :db/cardinality [:db/ident]
+                        :attribute.ref/types [:db/ident]}]
                    [:db/ident attr-ident])))))
 
 ;; Another function gives us a version of this that maps properly to idents
 (def attribute-signature-reaction
-  "Reaction of the pull of a schema attribute, where any references to something with an ident
+  "Reaction of the pull of a schema attribute, where any references to something with any ident entity
   have been replaced by that ident keyword."
   (memoize
     (fn [conn attr-ident]
       (let [schema-rx (attribute-schema-reaction conn attr-ident)]
         (reaction
           (into {}
-            (map (fn [[k v]] [k (if-let [ident (:db/ident v)] ident v)])
-                 @schema-rx)))))))
+            (letfn [(mapper [x]
+                      (or (:db/ident x)
+                          (and (seq? x) (map mapper x))
+                          x))]
+              (map (fn [[k v]] [k (mapper v)])
+                   @schema-rx))))))))
 
 
 ;; This code below may get better performance once we get the new posh stuff working...
@@ -240,7 +243,6 @@
     ;(fn [conn attr-ident]
       ;(let [datomic-schema-index (datomic-schema-index-reaction conn)]
         ;(reaction (get @datomic-schema-index attr-ident))))))
-
 ;;; XXX TODO For this to work will need to make sure datsync is keeping the conn schema up to date, and has things in the right shape, as well as includes the datomic.db/type
 ;(def schema-reaction
   ;"A reaction of the schema as DataScript sees it internally."
@@ -385,11 +387,13 @@
         view-spec (meta pull-expr)]
     [:div (:dom/attrs @(component-context conn ::pull-view-controls {:datview/locals (meta pull-expr)}))
      [re-com/md-icon-button :md-icon-name "zmdi-copy"
+                            :size :smaller
                             :style {:margin-right "10px"}
                             :tooltip "Copy entity"
                             :on-click (fn [] (js/alert "Coming soon to a database application near you"))]
      [re-com/md-icon-button :md-icon-name "zmdi-edit"
                             :style {:margin-right "10px"}
+                            :size :smaller
                             :tooltip "Edit entity"
                             ;; This assumes the pull has :datsync.remote.db/id... automate?
                             :on-click (fn [] (router/set-route! conn {:handler :edit-entity :route-params {:db/id (:datsync.remote.db/id pull-data)}}))]]))
@@ -591,5 +595,7 @@
    ;; Specifications merged in for any value type
    :datview/value-type-config {}
    :datview/attr-config {}})
+   ;; Will add the ability to add mappings at the entity level; And perhaps specifically at the type level.
+   ;; Use the patterns of OO/types with pure data; Dynamic
 
 

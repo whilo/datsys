@@ -1,6 +1,7 @@
 (ns catalysis.datomic
   (:require [clojure.tools.logging :as log]
             [datomic.api :as d]
+            [datview.core :as datview]
             [clojure.java.io :as io]
             [io.rkn.conformity :as conformity]
             [com.stuartsierra.component :as component]))
@@ -10,8 +11,9 @@
 ;; Not hard to bake our own as well if those don't work
 (defn ensure-schema!
   [conn]
-  ;; The schema is in `resources/schema.edn`
-  (let [schema-data (-> "schema.edn" io/resource slurp read-string)]
+  ;; The schema is in `resources/schema.edn`; Note that we make requirements in that schema about having Datview schema loaded
+  (let [schema-data (merge (-> "schema.edn" io/resource slurp read-string)
+                           datview/schema)]
     ;; This is where ideally we would be looking at a dependency graph of norms and executing in that order.
     ;; Look at Stuart Sierra's dependency library. XXX
     (doseq [k (keys schema-data)]
