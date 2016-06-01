@@ -302,14 +302,15 @@
   [pull-data]
   (match [pull-data]
     [{:e/name name}] name
-    [{:e/type type}] (name type)
+    [{:e/type {:db/ident type-ident}}] (name type-ident)
     [{:attribute/label label}] label
     ;; A terrible assumption really, but fine enough for now
     :else (pr-str pull-data)))
 
 (defn pull-summary-view
   [conn pull-expr pull-data]
-  [:div ( (pull-summary pull-data))])
+  [:div
+   (pull-summary pull-data)])
 
 
 ;; ## Event handler

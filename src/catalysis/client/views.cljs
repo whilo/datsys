@@ -28,7 +28,7 @@
 ;; The simplest of examples:
 
 (def time-entry
-  [:e/name :time.entry/start-time :time.entry/stop-time :e/description])
+  [:db/id :e/name :time.entry/start-time :time.entry/stop-time :e/description])
 
 (def base-todo-view
   ^{:attributes {:attr-view {:style {:background-color ""}}}
@@ -36,8 +36,9 @@
   ;; You can also plug in a reactive atom if you wish
   ;^{:datview/spec spec-atom}
   [:db/id :e/name :e/description
-   {:e/category [:e/name :e/description]
-    :e/tags [:e/name :e/description]
+   {:e/category [:db/id :e/name :e/description]
+    :e/tags [:db/id :e/name :e/description]
+    :e/type [:db/id :e/name :db/ident :db/id]
     :todo/time-entries time-entry}])
 
 ;; We could call (datview/pull-view conn base-todo-view eid) and get a hiccup view of the 

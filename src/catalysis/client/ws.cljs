@@ -46,7 +46,7 @@
 
 (defmethod push-msg-handler :datsync/tx-data
   [[_ tx-data]]
-  (js/console.log "tx-data recieved")
+  (js/console.log "tx-data recieved:" (pr-str (take 30 tx-data)) "...")
   (datsync/apply-remote-tx! db/conn tx-data))
 
 (defmethod push-msg-handler :datsync.client/bootstrap

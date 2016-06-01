@@ -32,9 +32,10 @@
 (defn send-tx!
   "Sends the transaction to Datomic via datsync/datomic-tx and ws/chsk-send! (message channel :datsync.remote/tx)"
   [conn tx]
-  (js/console.log "Sending tx:" tx)
+  (js/console.log "Sending tx:" (pr-str tx))
   ;; XXX Need to make datomic-tx more a multimethod on op, so we can properly translate custom txs
   (let [datomic-tx (datsync/datomic-tx conn tx)]
+    (js/console.log "Remote tx translated:" (pr-str datomic-tx))
     (ws/chsk-send! [:datsync.remote/tx datomic-tx])))
 
 
@@ -61,35 +62,40 @@
     (fn [new-value]
       (let [old-value @current-value
             new-value (cast-value-type value-type-ident new-value)]
-        (reset! current-value new-value)
-        (send-tx! conn (concat
-                         (when old-value [[:db/retract eid attr-ident old-value]])
-                          ;; Probably need to cast, since this is in general a string so far
-                         [[:db/add eid attr-ident new-value]]))))))
+        (when (not= old-value new-value)
+          ;; This isn't as atomic as I'd like XXX
+          (reset! current-value new-value)
+          (send-tx! conn (concat
+                           (when old-value [[:db/retract eid attr-ident old-value]])
+                            ;; Probably need to cast, since this is in general a string so far
+                           [[:db/add eid attr-ident new-value]])))))))
 
 
 (defn apply-reference-change!
   ([conn eid attr-ident new-value]
    (apply-reference-change! conn eid attr-ident nil new-value))
   ([conn eid attr-ident old-value new-value]
-   (send-tx! conn (concat [[:db/add eid attr-ident new-value]]
-                          (when old-value
-                            [[:db/retract eid attr-ident old-value]])))))
+   (let [old-value (match [old-value]
+                     [{:db/id id}] id
+                     [id] id)]
+     (send-tx! conn (concat [[:db/add eid attr-ident new-value]]
+                            (when old-value
+                              [[:db/retract eid attr-ident old-value]]))))))
 
 
 (defn select-entity-input
   {:todo ["Finish..."
           "Create some attribute indicating what entity types are possible values; other rules?"]}
   ([conn eid attr-ident value]
+   ;; XXX value arg should be safe as a reaction here
    (let [;options @(datview/attribute-signature-reaction conn attr-ident)]
          options (->>
                    @(posh/q conn
                             '[:find [(pull ?eid [*]) ...]
-                              :in $ ?attr-ident
-                              :where [?attr :db/ident ?attr-ident]
-                                     [?attr :attribute.ref/types ?type]
+                              :in $ ?attr
+                              :where [?attr :attribute.ref/types ?type]
                                      [?eid :e/type ?type]]
-                            attr-ident)
+                            [:db/ident attr-ident])
                    ;; XXX Oh... should we call entity-name entity-label? Since we're really using as the label
                    ;; here?
                    (mapv (fn [pull-data] (assoc pull-data :label (datview/pull-summary pull-data)
@@ -97,20 +103,14 @@
                    (sort-by :label))]
      ;; Remove this div; just for debug XXX
      [:div
-      ;[datview/debug "options:"
-                     ;@(posh/q conn
-                              ;'[:find [(pull ?type [*]) ...]
-                                ;:in $ ?attr
-                                ;:where [?attr :attribute.ref/types ?type]]
-                                       ;;[?eid :e/type ?type]]
-                              ;[:db/ident attr-ident])]
+      ;[datview/debug "options:" options]
       [select-entity-input conn eid attr-ident value options]]))
   ([conn eid attr-ident value options]
    [re-com/single-dropdown
     :style {:min-width "150px"}
     :choices options
-    :model value
-    :on-change (partial apply-reference-change! conn eid attr-ident value)]))
+    :model (:db/id value)
+    :on-change (partial apply-reference-change! conn eid attr-ident (:db/id value))]))
 
 
 ;; Simple md (markdown) component; Not sure if we really need to include this in datview or not...
@@ -185,6 +185,13 @@
                                                        [[:db/add eid attr-ident new-value]]))))])))
 
 
+;; XXX Having to do a bunch of work it seems to make sure that the e.type/attributes properties are set up for views to render properly;
+;; We're not getting time entries showing up on ui;
+;; Not sure if not making the circuit or if something weird is going on.
+
+;; XXX Also, it seems like right now we need the :db/id in the pull expressions; Need to find a way of requesting for other data when needed
+
+
 ;; Should have this effectively mutlitmethod dispatch using the datview customization functionality
 (defn input-for
   ([conn context pull-expr eid attr-ident value]
@@ -203,9 +210,9 @@
              context (if (:datview/root-pull-expr context)
                        context
                        (assoc context :datview/root-pull-expr pull-expr))]
-         (when-not (and (= (:db/cardinality attr) :db.cardinality/many)
-                        (nil? value))
-           [pull-form conn context sub-expr value]))
+         ;(when-not (= (:db/cardinality attr) :db.cardinality/many)
+                        ;;(nil? value))
+         [pull-form conn context sub-expr value])
        ;; This is where we can insert something that catches certain things and handles them separately, depending on context
        ;[{:db/valueType :db.type/ref} {:datview.level/attr {?}}]
        ;[pull-form conn context (get pull-expr value)]
@@ -312,7 +319,7 @@
   ([on-click-fn]
    (add-reference-button "Add entity" on-click-fn)))
 
-;; Similarly, should have another function for doing the main simple operation here
+;; Similarly, should have another function for doing the main simple operation here XXX
 (defn add-reference-for-type-button
   "Simply add a reference for a given type (TODO...)"
   [tooltip type-ident])
@@ -339,8 +346,11 @@
 ;; Again; need to think about the right way to pass through the attribute data here
 (defn field-for
   [conn context pull-expr eid attr-ident value]
-  ;; Should move all this local state in conn db if possible... XXX
-  (let [activate-type-selector? (r/atom false)
+  ;; So first we get attr-signature and config
+  (let [attr-sig (datview/attribute-signature-reaction conn attr-ident)
+        config (datview/component-context conn ::field-for {:datview/locals context :datview/attr attr-ident})
+        ;; Should move all this local state in conn db if possible... XXX
+        activate-type-selector? (r/atom false)
         selected-type (r/atom nil)
         cancel-fn (fn []
                     (reset! activate-type-selector? false)
@@ -350,10 +360,7 @@
                 (reset! activate-type-selector? false)
                 (create-type-reference conn eid attr-ident @selected-type)
                 (reset! selected-type nil)
-                false)
-        attr-sig (datview/attribute-signature-reaction conn attr-ident)
-        ;; Oh wait... maybe we can't put this here if context isn't a reaction... This only gets called once...
-        config (datview/component-context conn ::field-for {:datview/locals context :datview/attr attr-ident})]
+                false)]
         ;; XXX Need to add sorting functionality here...
     (fn [conn context pull-expr eid attr-ident value]
       ;; Ug... can't get around having to duplicate :field and label-view
@@ -368,12 +375,16 @@
            [field-for-skeleton conn attr-ident 
              ;; Right now these can't "move" because they don't have keys XXX Should fix with another component
              ;; nesting...
+             ;; All of these things should be rewritten in terms of controls, and controls should be more cleanly separated out in config XXX
              [(when (= :db.cardinality/many (:db/cardinality @attr-sig))
                 ^{:key (hash :add-reference-button)}
                 [add-reference-button (fn []
                                         (cond
                                           (> (count type-idents) 1)
                                           (reset! activate-type-selector? true)
+                                          ;; Should specifically catch this and let user select from any possible type; or maybe a defaults? context?
+                                          (= (count type-idents) 0)
+                                          (js/alert "No types associated with this attribute; This will be allowed in the future, till then please find/file a GH issue to show interest.")
                                           :else 
                                           (create-type-reference conn eid attr-ident (first type-idents))))])
               ;; Need a flexible way of specifying which attributes need special functions associated in form
@@ -382,12 +393,16 @@
                 [re-com/modal-panel
                  :child [attr-type-selector type-idents selected-type ok-fn cancel-fn]])]
              ;; Then for the actual value...
+             ;(for [value (or (seq (utils/deref-or-value value)) [nil])]
              (for [value (let [value (utils/deref-or-value value)]
                            (or
-                             (and (coll? value) (seq value))
-                             [value]))]
+                             (and (sequential? value) (seq value))
+                             (and value [value])
+                             [nil]))]
                ^{:key (hash {:component :field-for :eid eid :attr-ident attr-ident :value value})}
-               [input-for conn context pull-expr eid attr-ident value])]])))))
+               [:div
+                ;[datview/debug "value:" value]
+                [input-for conn context pull-expr eid attr-ident value]])]])))))
 
 (defn get-remote-eid
   [conn eid]
@@ -442,6 +457,21 @@
        distinct))
 
 
+(defn pull-with-extra-fields
+  ([pull-expr extra-fields]
+   (distinct
+     (concat
+       (map
+         (fn [attr-spec] (if (map? attr-spec)
+                           (into {} (map (fn [k pull-expr']
+                                           [k (pull-with-extra-fields pull-expr' extra-fields)])))))
+         pull-expr)
+       extra-fields)))
+  ([pull-expr]
+   ;; Need to be able to nest in type ident...
+   (pull-with-extra-fields pull-expr [:db/id :db/ident :e/type])))
+
+
 (defn pull-form
   "Renders a form with defaults from pull data, or for an existing entity, subject to optional specification of a
   pull expression (possibly annotated with context metadata), a context map"
@@ -451,17 +481,18 @@
   ([conn pull-expr pull-data-or-eid]
    (pull-form conn (pull-expression-context pull-expr) pull-expr pull-data-or-eid))
   ([conn context pull-expr pull-data-or-eid]
-   (if (integer? pull-data-or-eid)
-     (if-let [current-data @(posh/pull conn pull-expr pull-data-or-eid)]
-       [pull-form conn context pull-expr current-data]
-       [loading-notification "Please wait; loading data."])
-     ;; The meat of the logic
-     (let [context @(datview/component-context conn ::pull-form {:datview/locals context})]
-       [:div (:dom/attrs context)
-        ;; Can you doubly nest for loops like this? XXX WARN
-        (for [attr-ident (pull-expr-attributes conn pull-expr)]
-          ^{:key (hash attr-ident)}
-          [field-for conn context pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])]))))
+   (when pull-data-or-eid
+     (if (integer? pull-data-or-eid)
+       (if-let [current-data @(posh/pull conn pull-expr pull-data-or-eid)]
+         [pull-form conn context pull-expr current-data]
+         [loading-notification "Please wait; loading data."])
+       ;; The meat of the logic
+       (let [context @(datview/component-context conn ::pull-form {:datview/locals context})]
+         [:div (:dom/attrs context)
+          ;; Can you doubly nest for loops like this? XXX WARN
+          (for [attr-ident (pull-expr-attributes conn pull-expr)]
+            ^{:key (hash attr-ident)}
+            [field-for conn context pull-expr (:db/id pull-data-or-eid) attr-ident (get pull-data-or-eid attr-ident)])])))))
 
 ;; We should use this to grab the pull expression for a given chunk of data
 ;(defn pull-expr-for-data

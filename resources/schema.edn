@@ -24,6 +24,7 @@
    [{:db/id #db/id[:db.part/user]
      :db/ident :e.type/Todo      ;; Types are idents; Currently we refer to type by keyword; needs to change
      :e/type :e.type/Type        ;; Installs this entity as a type
+     :e.type/attributes [:e/name :e/description :e/tags :e/category]
      :e.type/isa :e.type/Entity} ;; not strictly necessary, but let's us talk about all entities as instances of :e.type/Entity
     ;; Time entries
     {:db/id #db/id[:db.part/user]
