@@ -191,6 +191,7 @@
 
 ;; XXX Also, it seems like right now we need the :db/id in the pull expressions; Need to find a way of requesting for other data when needed
 
+;; XXX Should have option for collapse that would let you collapse all instances of some attribute, versus just one particular entity/attribute combo
 
 ;; Should have this effectively mutlitmethod dispatch using the datview customization functionality
 (defn input-for

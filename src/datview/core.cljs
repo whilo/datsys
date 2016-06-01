@@ -308,9 +308,25 @@
     :else (pr-str pull-data)))
 
 (defn pull-summary-view
-  [conn pull-expr pull-data]
-  [:div
+  [conn context pull-data]
+  [:div {:style {:font-weight "bold" :padding "5px"}}
    (pull-summary pull-data)])
+
+(defn collapse-summary
+  [conn context values]
+  ;; XXX Need to stylyze and take out of re-com styling
+  [:div {:style (merge v-box-styles
+                       {:padding "10px"})}
+                       ;:align :end
+                       ;:gap "20px"
+   (for [value values]
+     ^{:key (hash value)}
+     [pull-summary-view conn context value])])
+
+;; These summary things are still kinda butt ugly.
+;; And they're something we need to generally spend more time on anyway.
+;; Need to smooth out... XXX
+
 
 
 ;; ## Event handler
@@ -424,14 +440,8 @@
        :else
        (str value))]))
 
-(defn collapse-summary
-  [conn attr-ident values]
-  (case attr-ident
-    ;; XXX Needs to be possible to hook into the dispatch here
-    ;; Default
-    [:p "Click the arrow to see more"]))
-
   
+
 ;; Should we have a macro for building these components and dealing with all the state in the context? Did the merge for you?
 ;(defn build-view-component)
 
@@ -445,9 +455,10 @@
       [:div (:dom/attrs context)
        (when collapsable?
          [collapse-button collapse-attribute?])
-       (when (or (not collapsable?) (and collapsable? @collapse-attribute?))
-         ^{:key 1}
-         [collapse-summary conn attr-ident values]
+       (when @collapse-attribute?
+         [collapse-summary conn context values])
+          ;(defn pull-summary-view [conn pull-expr pull-data]
+       (when (or (not collapsable?) (and collapsable? (not @collapse-attribute?)))
          (for [value (utils/deref-or-value values)]
            ^{:key (hash value)}
            [value-view conn pull-expr attr-ident value]))])))
@@ -591,6 +602,8 @@
                                bordered-box-style
                                {:padding "8px 15px"
                                 :width "100%"})}
+     ;; Hmm... maybe this should point to the keyword so it can grab from there?
+     :datview/summary pull-summary-view
      :datview/component pull-view}
     ::pull-view-controls
     {:dom/attrs {:style (merge h-box-styles
