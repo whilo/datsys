@@ -19,8 +19,7 @@
     (try
       (conformity/ensure-conforms conn schema-data)
       (catch Exception e
-        (.printStackTrace e)
-        (./pprint (-> e :failed))))))
+        (.printStackTrace e)))))
 
 ;(-> "config/local/seed-data.edn" slurp read-string)
 

@@ -147,36 +147,6 @@
        (let [new-val (apply f args)]
          (swap! cache assoc (meta-sig args) new-val)
          new-val)))))
-  
-(def component-context
-  "This function returns the component configuration (base-context; should rename) for either an entire render network,
-  abstractly, or for a specific component based on a component id (namespaced keyword matching the function to be called)."
-  (memoize
-    (fn component-context*
-      ([conn]
-       (reaction
-         ;; Don't need this arity if we drop the distinction between base-context and default-mappings
-         (utils/deep-merge
-           @default-mappings
-           @(base-context conn))))
-      ([conn component-id]
-       (component-context* conn component-id {}))
-      ([conn component-id {:as options
-                           ;; Options, in order of precedence in consequent merging
-                           :keys [datview/locals ;; points to local overrides; highest precedence
-                                  ;; When the component is in a scope closed over by some particular attribute:
-                                  datview/attr ;; db/ident of the attribute; precedence below locals
-                                  datview/valueType ;; The :db/valueType of the attribute (as ident); lower precedence still
-                                  datview/cardinality]}] ;; Cardinality (ident) of the value type; lowest precedence
-       (reaction
-         (let [merged (utils/deep-merge @(component-context conn) (utils/deref-or-value locals))]
-           ;; Need to also get the value type and card config by the attr-config if that's all that's present; Shouldn't ever
-           ;; really need to pass in manually XXX
-           (utils/deep-merge (get-in merged [:datview/base-config component-id])
-                             (get-in merged [:datview/card-config cardinality component-id])
-                             (get-in merged [:datview/value-type-config valueType component-id])
-                             (get-in merged [:datview/attr-config attr component-id]))))))))
-
 
 ;; ### Attribute metadata reactions
 
@@ -203,7 +173,7 @@
           (into {}
             (letfn [(mapper [x]
                       (or (:db/ident x)
-                          (and (seq? x) (map mapper x))
+                          (and (sequential? x) (map mapper x))
                           x))]
               (map (fn [[k v]] [k (mapper v)])
                    @schema-rx))))))))
@@ -251,6 +221,40 @@
       ;(let [conn-rx (as-reaction conn)]
         ;(reaction (:schema @conn-rx))))))
 
+
+;; This is what does all the work of computing our context for each component
+
+(def component-context
+  "This function returns the component configuration (base-context; should rename) for either an entire render network,
+  abstractly, or for a specific component based on a component id (namespaced keyword matching the function to be called)."
+  (memoize
+    (fn component-context*
+      ([conn]
+       (reaction
+         ;; Don't need this arity if we drop the distinction between base-context and default-mappings
+         (utils/deep-merge
+           @default-mappings
+           @(base-context conn))))
+      ([conn component-id]
+       (component-context* conn component-id {}))
+      ([conn component-id {:as options
+                           ;; Options, in order of precedence in consequent merging
+                           :keys [datview/locals ;; points to local overrides; highest precedence
+                                  ;; When the component is in a scope closed over by some particular attribute:
+                                  datview/attr ;; db/ident of the attribute; precedence below locals
+                                  datview/valueType ;; The :db/valueType of the attribute (as ident); lower precedence still
+                                  datview/cardinality]}] ;; Cardinality (ident) of the value type; lowest precedence
+       (reaction
+         (let [merged (utils/deep-merge @(component-context conn) (utils/deref-or-value locals))]
+           (if attr
+             (let [attr-sig @(attribute-signature-reaction conn attr)]
+               (utils/deep-merge (get-in merged [:datview/base-config component-id])
+                                 (get-in merged [:datview/card-config (:db/cardinality attr-sig) component-id])
+                                 (get-in merged [:datview/value-type-config (:db/valueType attr-sig) component-id])
+                                 (get-in merged [:datview/attr-config attr component-id])))
+             ;; Need to also get the value type and card config by the attr-config if that's all that's present; Shouldn't ever
+             ;; really need to pass in manually XXX
+             (get-in merged [:datview/base-config component-id]))))))))
 
 
 

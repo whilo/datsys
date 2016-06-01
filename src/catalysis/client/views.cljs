@@ -33,8 +33,12 @@
 (def base-todo-view
   ^{:attributes {:attr-view {:style {:background-color ""}}}
     :summary datview/pull-summary-view}
+  ;; You can also plug in a reactive atom if you wish
   ;^{:datview/spec spec-atom}
-  [:db/id :e/name :e/description {:e/category [:e/name :e/description] :e/tags [:e/name :e/description] :todo/time-entries time-entry}])
+  [:db/id :e/name :e/description
+   {:e/category [:e/name :e/description]
+    :e/tags [:e/name :e/description]
+    :todo/time-entries time-entry}])
 
 ;; We could call (datview/pull-view conn base-todo-view eid) and get a hiccup view of the 
 
@@ -56,7 +60,7 @@
 
 (defn type-instance-eids-rx
   [conn type-ident]
-  (posh/q conn '[:find [?e ...] :in $ ?type-ident :where [?e :e/type ?type-ident]] type-ident))
+  (posh/q conn '[:find [?e ...] :in $ ?type-ident :where [?e :e/type ?type-ident]] [:db/ident type-ident]))
 
 ;; Now we can put these things together into a Reagent component
 

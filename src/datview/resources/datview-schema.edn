@@ -34,7 +34,7 @@
      :db.install/_attribute :db.part/db}]
    ;;
    ;;
-   ;; # Type heirarchy
+   ;; # Type hierarchy
    ;; ================
    ;;
    ;; * type/Entity; You typically inherit from Entity, though you don't strictly need to
@@ -46,7 +46,7 @@
    ;; These are the abstract types from which we'll want to be able to inherit
    [{:db/id          #db/id[:db.part/db]
      :db/ident       :e/type
-     :db/valueType   :db.type/keyword
+     :db/valueType   :db.type/ref
      :db/cardinality :db.cardinality/one
      :db/doc         "Specifies the type of a given entity"
      :db.install/_attribute :db.part/db}

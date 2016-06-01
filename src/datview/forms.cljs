@@ -88,16 +88,22 @@
                               :in $ ?attr-ident
                               :where [?attr :db/ident ?attr-ident]
                                      [?attr :attribute.ref/types ?type]
-                                     [?type :db/ident ?type-ident]
-                                     [?eid :e/type ?type-ident]]
+                                     [?eid :e/type ?type]]
                             attr-ident)
                    ;; XXX Oh... should we call entity-name entity-label? Since we're really using as the label
                    ;; here?
                    (mapv (fn [pull-data] (assoc pull-data :label (datview/pull-summary pull-data)
                                                           :id (:db/id pull-data))))
                    (sort-by :label))]
-     (println "Options are:" options)
+     ;; Remove this div; just for debug XXX
      [:div
+      ;[datview/debug "options:"
+                     ;@(posh/q conn
+                              ;'[:find [(pull ?type [*]) ...]
+                                ;:in $ ?attr
+                                ;:where [?attr :attribute.ref/types ?type]]
+                                       ;;[?eid :e/type ?type]]
+                              ;[:db/ident attr-ident])]
       [select-entity-input conn eid attr-ident value options]]))
   ([conn eid attr-ident value options]
    [re-com/single-dropdown
@@ -229,10 +235,12 @@
 (defn create-type-reference
   [conn eid attr-ident type-ident]
   (send-tx! conn
-          ;; Right now this also only works for isComponent :db.cardinality/many attributes. Should
-          ;; generalize for :db/isComponent false so you could add a non-ref attribute on the fly XXX
-          [{:db/id -1 :e/type type-ident}
-           [:db/add eid attr-ident -1]]))
+            ;; Right now this also only works for isComponent :db.cardinality/many attributes. Should
+            ;; generalize for :db/isComponent false so you could add a non-ref attribute on the fly XXX
+            ;; This also may not work if you try to transact it locally, since type-ident doesn't resolve to the entity in DS (idents aren't really supported) XXX
+            ;; Could maybe work with a ref [:db/ident type-ident], but I don't know if these are supported in tx
+            [{:db/id -1 :e/type type-ident}
+             [:db/add eid attr-ident -1]]))
 
 
 ;; XXX Again; should maybe switch to just eid, and let user pass in [:db/ident attr-ident]
@@ -275,6 +283,7 @@
 
 ;; All this skeleton stuff is a bit anoying; these things are what the user should be specifying, not the
 ;; other way around
+;; Should strip down and simplify field-for-skeleton; Doesn't need to be this complex XXX
 (defn field-for-skeleton
   [conn attr-ident controls inputs]
   [re-com/v-box
@@ -350,9 +359,11 @@
       ;; Ug... can't get around having to duplicate :field and label-view
       (when (and @(posh/q conn '[:find ?eid :in $ ?eid :where [?eid]])
                  (not (:attribute/hidden? @config)))
-        (let [type-idents (:attribute.ref/types attr-sig)]
+        (let [type-idents (:attribute.ref/types @attr-sig)]
           ;; Are controls still separated this way? Should they be? XXX
           [:div (:dom/attrs @config)
+           ;[datview/debug "type-idents:" type-idents]
+           ;[datview/debug "attr-sig:" @attr-sig]
            ;[:div (get-in @config [:datview.level/attr :datview/controls])]
            [field-for-skeleton conn attr-ident 
              ;; Right now these can't "move" because they don't have keys XXX Should fix with another component
