@@ -38,7 +38,6 @@
   [:db/id :e/name :e/description
    {:e/category [:db/id :e/name :e/description]
     :e/tags [:db/id :e/name :e/description]
-    :e/type [:db/id :e/name :db/ident :db/id]
     :todo/time-entries time-entry}])
 
 ;; We could call (datview/pull-view conn base-todo-view eid) and get a hiccup view of the 

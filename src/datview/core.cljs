@@ -487,6 +487,23 @@
 ;; * middleware?
 
 
+(defn pull-attributes
+  ([pull-expr pull-data]
+   (->> pull-expr
+        (map (fn [attr-spec]
+               (cond
+                 (keyword? attr-spec) attr-spec
+                 (map? attr-spec) (keys attr-spec)
+                 (symbol? attr-spec)
+                 (case attr-spec
+                   '* (filter
+                        (set (pull-attributes (remove #{'*} pull-expr) []))
+                        (keys pull-data))))))
+        flatten
+        distinct))
+  ([pull-expr]
+   (pull-attributes pull-expr [])))
+
 ;; Should actually try to tackle this
 
 (defn pull-data-view
@@ -506,13 +523,9 @@
            [summary conn pull-expr pull-data]])]
       ;; XXX TODO Questions:
       ;; Need a react-id function that lets us repeat attrs when needed
-      ;; Can we just use indices here?
-      ;; How do we handle *?
-      (for [pull-attr (distinct pull-expr)]
-        (let [attr-ident (cond (keyword? pull-attr) pull-attr
-                               (map? pull-attr) (first (keys pull-attr)))]
-          ^{:key (hash pull-attr)}
-          [attr-view conn pull-expr attr-ident (get pull-data attr-ident)]))])))
+      (for [attr-ident (pull-attributes pull-expr pull-data)]
+        ^{:key (hash attr-ident)}
+        [attr-view conn pull-expr attr-ident (get pull-data attr-ident)])])))
 
 (defn pull-view
   ([conn pull-expr eid]
