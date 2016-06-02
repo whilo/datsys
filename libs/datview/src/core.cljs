@@ -4,9 +4,11 @@
   (:require [posh.core :as posh]
             [schema.core :as s
              :include-macros true]
+            [com.stuartsierra.component :as component]
             [datview.schema :as datview.s]
             [datview.router :as router]
-            [catalysis.shared.utils :as utils]
+            [datview.comms :as comms]
+            [datview.utils :as utils]
             [reagent.core :as r]
             [reagent.ratom :as ratom]
             [re-frame.core :as re-frame]
@@ -24,6 +26,21 @@
 
 
 ;; Should really remove `conn` everywhere below to `component`, for access to other resources
+
+(defn send-message!
+  [{:as datview :keys [comms]} message]
+  (comms/send-message! comms message))
+
+(defn send-tx!
+  "Sends the transaction to Datomic via datsync/datomic-tx and whatever send-message! function is defined
+  (message = [:datsync.remote/tx tx])"
+  [{:as datview :keys [comms conn]} tx]
+  (js/console.log "Sending tx:" (pr-str tx))
+  (let [datomic-tx (datsync/datomic-tx conn tx)]
+    (js/console.log "Remote tx translated:" (pr-str datomic-tx))
+    (comms/send-message! comms [:datsync.remote/tx datomic-tx])
+    ;; This was from hard coded sente
+    #_(ws/chsk-send! [:datsync.remote/tx datomic-tx])))
 
 
 
@@ -631,5 +648,32 @@
                                                            :dom/attrs {:style {:display "none"}}}}}})
    ;; Will add the ability to add mappings at the entity level; And perhaps specifically at the type level.
    ;; Use the patterns of OO/types with pure data; Dynamic
+
+
+;; Here's where everything comes together
+;; The Datview object is what we pass around as the first argument to all our functions
+
+(defrecord Datview [conn ;; You can access this for your posh queries;
+                    config ;; How you control the instantiation of Datview; options:
+                    ;; * :datascript/schema
+                    ;; * 
+                    comms ;; Actual component dependency; Something implementing the datview.comms/Comms protocol
+                    message-handler message-chan] ;; These are things we cache from our comms dependency for internal use
+  component/Lifecycle
+  (start [component]
+    (js/console.log "Starting DSComponent")
+    (let [base-schema (utils/merge datsync/base-schema (:datascript/schema config))
+          conn (or conn (d/create-conn datsync/base-schema))] 
+      (d/transact! conn datview/default-settings)
+      (posh/posh! conn) ;; Not sure if this is the best place for this
+      (assoc component
+             :conn conn
+             ())))
+  (stop [component]
+    component))
+
+
+(defn new-datview [options])
+  (map->DSConn {:options options}))
 
 

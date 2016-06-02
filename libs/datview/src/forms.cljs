@@ -5,6 +5,7 @@
             [datview.router :as router]
             [datview.core :as datview]
             [datview.query :as query]
+            [datview.comms :as comms]
             ;; Need to switch to datview XXX
             [catalysis.shared.utils :as utils]
             [datview.old :as old]
@@ -26,17 +27,6 @@
 
 
 (declare pull-form)
-
-;; TODO XXX Not sure yet how to abstract around this; general event handlers probably
-;; Must solve before abstraction
-(defn send-tx!
-  "Sends the transaction to Datomic via datsync/datomic-tx and ws/chsk-send! (message channel :datsync.remote/tx)"
-  [conn tx]
-  (js/console.log "Sending tx:" (pr-str tx))
-  ;; XXX Need to make datomic-tx more a multimethod on op, so we can properly translate custom txs
-  (let [datomic-tx (datsync/datomic-tx conn tx)]
-    (js/console.log "Remote tx translated:" (pr-str datomic-tx))
-    (ws/chsk-send! [:datsync.remote/tx datomic-tx])))
 
 
 (defn cast-value-type
@@ -65,10 +55,12 @@
         (when (not= old-value new-value)
           ;; This isn't as atomic as I'd like XXX
           (reset! current-value new-value)
-          (send-tx! conn (concat
-                           (when old-value [[:db/retract eid attr-ident old-value]])
-                            ;; Probably need to cast, since this is in general a string so far
-                           [[:db/add eid attr-ident new-value]])))))))
+          (comms/send-tx!
+            conn
+            (concat
+              (when old-value [[:db/retract eid attr-ident old-value]])
+               ;; Probably need to cast, since this is in general a string so far
+              [[:db/add eid attr-ident new-value]])))))))
 
 
 (defn apply-reference-change!
@@ -78,9 +70,9 @@
    (let [old-value (match [old-value]
                      [{:db/id id}] id
                      [id] id)]
-     (send-tx! conn (concat [[:db/add eid attr-ident new-value]]
-                            (when old-value
-                              [[:db/retract eid attr-ident old-value]]))))))
+     (comms/send-tx! conn (concat [[:db/add eid attr-ident new-value]]
+                                  (when old-value
+                                    [[:db/retract eid attr-ident old-value]]))))))
 
 
 (defn select-entity-input
@@ -146,10 +138,10 @@
   (let [old-value @current-value
         new-value (update-date old-value new-date-value)]
     (reset! current-value new-value)
-    (send-tx! conn
-              (concat (when old-value
-                        [[:db/retract eid attr-ident (cljs-time.coerce/to-date old-value)]])
-                      [[:db/add eid attr-ident (cljs-time.coerce/to-date new-value)]]))))
+    (comms/send-tx! conn
+                    (concat (when old-value
+                              [[:db/retract eid attr-ident (cljs-time.coerce/to-date old-value)]])
+                            [[:db/add eid attr-ident (cljs-time.coerce/to-date new-value)]]))))
 
 ;; XXX Finish
 (defn datetime-time-change-handler
@@ -179,10 +171,10 @@
                        :on-change (fn [new-value]
                                     (let [old-value @current-value]
                                       (reset! current-value new-value)
-                                      (send-tx! conn (concat
-                                                       (when-not (nil? old-value)
-                                                         [[:db/retract eid attr-ident old-value]])
-                                                       [[:db/add eid attr-ident new-value]]))))])))
+                                      (comms/send-tx! conn (concat
+                                                             (when-not (nil? old-value)
+                                                               [[:db/retract eid attr-ident old-value]])
+                                                             [[:db/add eid attr-ident new-value]]))))])))
 
 
 ;; XXX Having to do a bunch of work it seems to make sure that the e.type/attributes properties are set up for views to render properly;
@@ -242,13 +234,14 @@
 
 (defn create-type-reference
   [conn eid attr-ident type-ident]
-  (send-tx! conn
-            ;; Right now this also only works for isComponent :db.cardinality/many attributes. Should
-            ;; generalize for :db/isComponent false so you could add a non-ref attribute on the fly XXX
-            ;; This also may not work if you try to transact it locally, since type-ident doesn't resolve to the entity in DS (idents aren't really supported) XXX
-            ;; Could maybe work with a ref [:db/ident type-ident], but I don't know if these are supported in tx
-            [{:db/id -1 :e/type type-ident}
-             [:db/add eid attr-ident -1]]))
+  (comms/send-tx!
+    conn
+    ;; Right now this also only works for isComponent :db.cardinality/many attributes. Should
+    ;; generalize for :db/isComponent false so you could add a non-ref attribute on the fly XXX
+    ;; This also may not work if you try to transact it locally, since type-ident doesn't resolve to the entity in DS (idents aren't really supported) XXX
+    ;; Could maybe work with a ref [:db/ident type-ident], but I don't know if these are supported in tx
+    [{:db/id -1 :e/type type-ident}
+     [:db/add eid attr-ident -1]]))
 
 
 ;; XXX Again; should maybe switch to just eid, and let user pass in [:db/ident attr-ident]
@@ -417,7 +410,7 @@
       (match [entity]
         ;; may need the ability to dispatch in here;
         :else
-        (send-tx! conn [[:db.fn/retractEntity eid]])))))
+        (comms/send-tx! conn [[:db.fn/retractEntity eid]])))))
 
 
 ;; Let's do a thing where we have 

@@ -1,5 +1,6 @@
 (ns catalysis.client.db
   (:require [datsync.client :as datsync]
+            [com.stuartsierra.component :as component]
             [datascript.core :as d]
             [datview.core :as datview]
             [catalysis.shared.utils :as utils]
@@ -8,16 +9,20 @@
 
 ;; Set up our database and initialize posh
 
-(defonce conn
-  (d/create-conn (utils/deep-merge datsync/base-schema
-                                   datview/base-schema)))
+(defrecord DSConn [conn history] ;; Eventually do history
+  component/Lifecycle
+  (start [component]
+    (js/console.log "Starting DSComponent")
+    (let [conn (or conn (d/create-conn datsync/base-schema))] 
+      (d/transact! conn datview/default-settings)
+      (posh/posh! conn) ;; Not sure if this is the best place for this
+      (assoc component :conn conn))) 
+  (stop [component]
+    ;; No op; not sure what I might do here
+    component))
 
-(d/transact! conn datview/default-settings)
 
-(posh/posh! conn)
-
-;; crickets; this is mostly just state management right now, which is icky; kind of anti-pattern
-;; may make more sense to keep subscriptions or posh functions here
-
+(defn new-ds-conn []
+  (map->DSConn {}))
 
 

@@ -48,16 +48,16 @@
   ;                                [:env/datomic_username]
   ;                                 :password
   ;                                 [:env/datomic_password]}}
-  :source-paths ["src"]
+  :source-paths ["src"
                  ;; Can uncomment to test development of datsync or datview (must also check out said projects
                  ;; in libs for this to work)
                  ;"libs/datsync/src"
-                 ;"libs/datview/src"]
+                 "libs/datview/src"]
   :resource-paths ["resources" "resources-index/prod"]
   :target-path "target/%s"
   :main ^:skip-aot catalysis.run
   :repl-options {:init-ns user}
-  :cljsbuild {:builds {:client {:source-paths ["src/catalysis/client" "src/datview"]
+  :cljsbuild {:builds {:client {:source-paths ["src/catalysis/client" "libs/datview/src"]
                                 :compiler {:output-to "resources/public/js/app.js"
                                            :output-dir "dev-resources/public/js/out"}}
                        :devcards {:source-paths ["src"]

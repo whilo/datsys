@@ -2,60 +2,9 @@
   (:require [taoensso.sente :as sente]
             [catalysis.client.db :as db]
             [datsync.client :as datsync]
+            [datview.comms :as comms]
+            [cljs.core.async :as async]
             [taoensso.sente.packers.transit :as sente-transit]))
-
-
-;; So we can send messages from handlers
-(declare send-tx!)
-(declare chsk-send!)
-
-;; ## Top level event handlers
-
-;; Dispatch on event-id
-(defmulti event-msg-handler :id)
-
-(defmethod event-msg-handler :default ; Fallback
-  [{:as ev-msg :keys [event]}]
-  (js/console.log "Unhandled event: %s" (pr-str event)))
-
-;; Total fucking dev hack; Seems :first-open? is malfunctioning? Have to do with figwheel?
-;; Have to figure this out... This is lame
-(defonce opened? (atom false))
-
-(defmethod event-msg-handler :chsk/state
-  [{:as ev-msg :keys [?data]}]
-  (js/console.log "chsk/state data:" (pr-str ?data))
-  (if (and (:first-open? ?data) (not @opened?))
-    (do (js/console.log "Channel socket successfully established!")
-        (js/console.log "Sending bootstrap request")
-        (chsk-send! [:datsync.client/bootstrap nil])
-        (reset! opened? true))
-    (js/console.log "Channel socket state change: %s" (pr-str ?data))))
-
-;; Set up push message handler
-
-; Dispatch on event key which is 1st elem in vector
-(defmulti push-msg-handler first)
-
-(defmethod event-msg-handler :chsk/recv
-  [{:as ev-msg :keys [?data]}]
-  (push-msg-handler ?data))
-
-
-;; ## Push message handlers
-
-(defmethod push-msg-handler :datsync/tx-data
-  [[_ tx-data]]
-  (js/console.log "tx-data recieved:" (pr-str (take 30 tx-data)) "...")
-  (datsync/apply-remote-tx! db/conn tx-data))
-
-(defmethod push-msg-handler :datsync.client/bootstrap
-  [[_ tx-data]]
-  ;; Possibly flag some state somewhere saying bootstrap has taken place?
-  (js/console.log "Recieved bootstrap")
-  (datsync/apply-remote-tx! db/conn tx-data))
-
-;; TODO Add any custom handlers here!
 
 
 
@@ -67,22 +16,28 @@
 ;(defn tagged-fn [:datsync.server/db-fn])
 (cljs.reader/register-tag-parser! 'db/fn pr-str)
 
-(let [packer (sente-transit/get-flexi-packer :edn)
-      {:keys [chsk ch-recv send-fn state]}
-      (sente/make-channel-socket! "/chsk" {:type :auto :packer packer})]
-  (def chsk       chsk)
-  (def ch-chsk    ch-recv)
-  (def chsk-send! send-fn)
-  (def chsk-state state))
+(defrecord WSConnection [chsk ch-recv send-fn state open?]
+  component/Lifecycle
+  (start [component]
+    (let [packer (sente-transit/get-flexi-packer :edn)
+          sente-fns (sente/make-channel-socket! "/chsk" {:type :auto :packer packer})]
+      ;; Don't know that we want to stay with this; We may want to build around transducer processing instructions
+      (sente/start-chsk-router! (:ch-recv sente-fns) event-msg-handler)
+      (merge component
+             sente-fns
+             {:open? (atom false)})))
+  (stop [component]
+    (when ch-recv (async/close! ch-recv))
+    (js/console.log "WebSocket connection stopped")
+    component)
+  comms/PSendMessage
+  (send-message! [component message]
+    (send-fn message))
+  comms/PMessageChannel
+  (message-chan [component]
+    ch-recv))
 
-(defn send-tx! [conn tx]
-  (js/console.log "Sending tx to server")
-  (chsk-send! [:datsync.client/tx (datsync/datomic-tx conn tx)])
-  (js/console.log "Transaction sent"))
-
-
-;; Hook up the message handler router
-(sente/start-chsk-router! ch-chsk event-msg-handler)
-
+(defn new-ws-connection []
+  (map->WSConnection {}))
 
 

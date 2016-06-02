@@ -32,7 +32,7 @@
 
 (def base-todo-view
   ^{:attributes {:attr-view {:style {:background-color ""}}}
-    :summary datview/pull-summary-view}
+    :datview/summary datview/pull-summary-view}
   ;; You can also plug in a reactive atom if you wish
   ;^{:datview/spec spec-atom}
   [:db/id :e/name :e/description
