@@ -17,3 +17,5 @@ config/local/
 data
 # So you can install datomic here
 datomic/
+# You can run a local checkout of datsync here
+libs/datsync
