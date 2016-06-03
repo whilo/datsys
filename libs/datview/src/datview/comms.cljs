@@ -3,6 +3,12 @@
             [datview.utils :as utils]))
 
 
+;; These protocols define the shape of an object Comms, which should satisfy PSendMessage and one of PMessageChannel or PMessageHandler,
+;; and can be passed along in the construction of a Datview object as a thing which abstracts the role of communicating messages with server.
+;; Eventually we may build around this and move this into Datsync, since it would be nice if it was in charge of all state/message management.
+;; Reason on that is that we'd like to deal with non-tx messages/events transactionally as well.
+
+
 ;; ## Sending messages
 
 (defprotocol PSendMessage

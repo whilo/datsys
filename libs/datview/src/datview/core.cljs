@@ -108,27 +108,29 @@
 
 ;; All of these should be checked for their semantics on :datview.base-context/value etc; Is this the right way to represent these things?
 
+;; Should probably move all of these out to reactions or some such, except for anything that's considered public
+
 (def base-context
   ;; Not sure if this memoize will do what I'm hoping it does (:staying-alive true, effectively)
   (memoize
-    (fn [conn]
+    (fn [datview]
       ;; Hmm... should we just serialize the structure fully?
       ;; Adds complexity around wanting to have namespaced attribute names for everything
-      (reaction (:datview.base-context/value @(posh/pull conn '[*] [:db/ident :datview/base-context]))))))
+      (reaction (:datview.base-context/value @(posh/pull (:conn datview) '[*] [:db/ident :datview/base-context]))))))
 
 (defn update-base-context!
-  [conn f & args]
+  [datview f & args]
   (letfn [(txf [db]
             (apply update
                    (d/pull db '[*] [:db/ident :datview/base-context])
                    :datview.base-context/value
                    f
                    args))]
-    (d/transact! conn [[:db.fn/call txf]])))
+    (d/transact! (:conn datview) [[:db.fn/call txf]])))
 
 (defn set-base-context!
-  [conn context]
-  (update-base-context! conn (constantly context)))
+  [datview context]
+  (update-base-context! (:conn datview) (constantly context)))
 
 
 
@@ -143,9 +145,9 @@
       @trigger
       @vanilla-atom)))
 
-(defn pull-many-rx
-  [conn pattern eids]
-  (let [conn-reaction (as-reaction conn)]
+(defn pull-many
+  [datview pattern eids]
+  (let [conn-reaction (as-reaction (:conn datview))]
     (reaction (d/pull-many @conn-reaction pattern eids))))
 
 
@@ -170,10 +172,10 @@
 (def attribute-schema-reaction
   "Returns the corresponding attr-ident entry from the Datomic schema. Returns full entity references; Have to path for idents."
   (memoize
-    (fn [conn attr-ident]
+    (fn [datview attr-ident]
       (if (= attr-ident :db/id)
         (reaction {:db/id nil})
-        (posh/pull conn
+        (posh/pull (:conn datview)
                    '[* {:db/valueType [:db/ident]
                         :db/cardinality [:db/ident]
                         :attribute.ref/types [:db/ident]}]
@@ -184,8 +186,8 @@
   "Reaction of the pull of a schema attribute, where any references to something with any ident entity
   have been replaced by that ident keyword."
   (memoize
-    (fn [conn attr-ident]
-      (let [schema-rx (attribute-schema-reaction conn attr-ident)]
+    (fn [datview attr-ident]
+      (let [schema-rx (attribute-schema-reaction (:conn datview) attr-ident)]
         (reaction
           (into {}
             (letfn [(mapper [x]
@@ -196,49 +198,6 @@
                    @schema-rx))))))))
 
 
-;; This code below may get better performance once we get the new posh stuff working...
-;; It would be nice though if we had some benchmarking stuff set up to be rigorous.
-;; XXX TODO
-
-;(defn ^:deprecated old-attribute-signature
-  ;;; Could work if we just used :staying-alive
-  ;[conn attr-ident]
-  ;(posh/q conn '[:find [?value-type-ident ?iscomp]
-                 ;:where [?attr :db/ident ?attr-ident]
-                        ;[?attr :db/valueType ?value-type]
-                        ;[?value-type :db/ident ?value-type-ident]
-                        ;[(get-else $ ?attr :db/isComponent false) ?iscomp]
-                 ;:in $ ?attr-ident]
-          ;attr-ident))
-;; This should be the implementation, but we have to swap out till we get pull in q in posh
-;(defn datomic-schema-reaction
-  ;"A reaction of the denormalized Datomic schema (anything with :db/ident) as DataScript sees it."
-  ;[conn]
-  ;;; XXX TODO Mark as :staying-alive true or whatever
-  ;(posh/q conn '[:find [(pull [*] ?e) ...] :where [?e :db/ident]]))
-;(def datomic-schema-index-reaction
-  ;"Returns the datomic-schema-reaction as a map from attr-id to pulls"
-  ;(memoize
-    ;(fn [conn]
-      ;(let [datomic-schema (datomic-schema-reaction conn)]
-        ;(reaction
-          ;(into {} (map (fn [{:as ident-entity :keys [db/ident]}] [ident ident-entity])
-                        ;@datomic-schema)))))))
-;(def attribute-schema-reaction
-  ;"Returns the corresponding attr-ident entry from `datomic-schema-index-reaction`."
-  ;(memoize
-    ;(fn [conn attr-ident]
-      ;(let [datomic-schema-index (datomic-schema-index-reaction conn)]
-        ;(reaction (get @datomic-schema-index attr-ident))))))
-;;; XXX TODO For this to work will need to make sure datsync is keeping the conn schema up to date, and has things in the right shape, as well as includes the datomic.db/type
-;(def schema-reaction
-  ;"A reaction of the schema as DataScript sees it internally."
-  ;(memoize
-    ;(fn [conn]
-      ;(let [conn-rx (as-reaction conn)]
-        ;(reaction (:schema @conn-rx))))))
-
-
 ;; This is what does all the work of computing our context for each component
 
 (def component-context
@@ -246,23 +205,24 @@
   abstractly, or for a specific component based on a component id (namespaced keyword matching the function to be called)."
   (memoize
     (fn component-context*
-      ([conn]
+      ([datview]
        (reaction
          ;; Don't need this arity if we drop the distinction between base-context and default-mappings
          (utils/deep-merge
            @default-mappings
-           @(base-context conn))))
-      ([conn component-id]
-       (component-context* conn component-id {}))
-      ([conn component-id {:as options
+           @(base-context datview))))
+      ([datview component-id]
+       (component-context* (:conn datview) component-id {}))
+      ([datview component-id {:as options}
                            ;; Options, in order of precedence in consequent merging
                            :keys [datview/locals ;; points to local overrides; highest precedence
                                   ;; When the component is in a scope closed over by some particular attribute:
                                   datview/attr ;; db/ident of the attribute; precedence below locals
                                   datview/valueType ;; The :db/valueType of the attribute (as ident); lower precedence still
-                                  datview/cardinality]}] ;; Cardinality (ident) of the value type; lowest precedence
+                                  datview/cardinality]] ;; Cardinality (ident) of the value type; lowest precedence
        (reaction
-         (let [merged (utils/deep-merge @(component-context conn) (utils/deref-or-value locals))]
+         (let [conn (:conn datview)
+               merged (utils/deep-merge @(component-context conn) (utils/deref-or-value locals))]
            (if attr
              (let [attr-sig @(attribute-signature-reaction conn attr)]
                (utils/deep-merge (get-in merged [:datview/base-config component-id])
@@ -325,12 +285,12 @@
     :else (pr-str pull-data)))
 
 (defn pull-summary-view
-  [conn context pull-data]
+  [datview context pull-data]
   [:div {:style {:font-weight "bold" :padding "5px"}}
    (pull-summary pull-data)])
 
 (defn collapse-summary
-  [conn context values]
+  [datview context values]
   ;; XXX Need to stylyze and take out of re-com styling
   [:div {:style (merge v-box-styles
                        {:padding "10px"})}
@@ -338,7 +298,7 @@
                        ;:gap "20px"
    (for [value values]
      ^{:key (hash value)}
-     [pull-summary-view conn context value])])
+     [pull-summary-view datview context value])])
 
 ;; These summary things are still kinda butt ugly.
 ;; And they're something we need to generally spend more time on anyway.
@@ -374,17 +334,17 @@
     (clojure.string/join " " (concat [(clojure.string/capitalize x)] xs))))
 
 (defn label-view
-  [conn attr-ident]
+  [datview attr-ident]
   (when attr-ident
     [re-com/label
      :style {:font-size "14px"
              :font-weight "bold"}
      :label
      ;; XXX Again, should be pull-based
-     (or @(posh/q conn '[:find ?attr-label .
+     (or @(posh/q (:conn datview) '[:find ?attr-label .]
                          :in $ ?attr-ident
                          :where [?attr :db/ident ?attr-ident]
-                                [?attr :attribute/label ?attr-label]]
+                                [?attr :attribute/label ?attr-label]
                   attr-ident)
          (lablify-attr-ident attr-ident))]))
 
@@ -410,20 +370,16 @@
 (declare pull-data-view)
 
 ;; XXX This will be coming to posh soon, but in case we need it earlier
-(defn pull-many
-  [conn pattern eids]
-  (let [conn-reaction (as-reaction conn)]
-    (reaction (d/pull-many @conn-reaction pattern eids))))
 
 ;; Still have to implement notion of hidden attributes at a database level
 
 
 ;; Still need to hook up with customized context
 (defn pull-view-controls
-  [conn pull-expr pull-data]
+  [datview pull-expr pull-data]
   (let [pull-data (utils/deref-or-value pull-data)
         view-spec (meta pull-expr)]
-    [:div (:dom/attrs @(component-context conn ::pull-view-controls {:datview/locals (meta pull-expr)}))
+    [:div (:dom/attrs @(component-context datview ::pull-view-controls {:datview/locals (meta pull-expr)}))
      [re-com/md-icon-button :md-icon-name "zmdi-copy"
                             :size :smaller
                             :style {:margin-right "10px"}
@@ -434,25 +390,26 @@
                             :size :smaller
                             :tooltip "Edit entity"
                             ;; This assumes the pull has :datsync.remote.db/id... automate?
-                            :on-click (fn [] (router/set-route! conn {:handler :edit-entity :route-params {:db/id (:datsync.remote.db/id pull-data)}}))]]))
+                            :on-click (fn [] (router/set-route! datview {:handler :edit-entity :route-params {:db/id (:datsync.remote.db/id pull-data)}}))]]))
 
 (defn default-field-for-controls
-  [conn pull-expr pull-data]
-  (let [context (component-context conn ::default-field-for-controls {:datview/locals (meta pull-expr)})]
+  [datview pull-expr pull-data]
+  (let [context (component-context datview ::default-field-for-controls {:datview/locals (meta pull-expr)}]
     [:div (:dom/attrs context)])) 
 
 ;(defn)
 
 (defn value-view
-  [conn pull-expr attr-ident value]
-  (let [attr-sig @(attribute-signature-reaction conn attr-ident)
+  [datview pull-expr attr-ident value]
+  (let [conn (:conn datview)
+        attr-sig @(attribute-signature-reaction conn attr-ident)
         context @(component-context conn ::value-view {:datview/locals (meta pull-expr)})]
     [:div (:dom/attrs context)
      ;[debug "Here is the comp-attrs:" attr-sig]
      (match [attr-sig]
        ;; For now, all refs render the same; May treat component vs non-comp separately later
        [{:db/valueType :db.type/ref}]
-       [pull-data-view conn (get-nested-pull-expr pull-expr attr-ident) value]
+       [pull-data-view datview (get-nested-pull-expr pull-expr attr-ident) value]
        ;; Miscellaneous value
        :else
        (str value))]))
@@ -463,38 +420,36 @@
 ;(defn build-view-component)
 
 (defn attr-values-view
-  [conn pull-expr attr-ident values]
-  (let [context @(component-context conn ::attr-values-view {:datview/locals (meta pull-expr)})
+  [datview pull-expr attr-ident values]
+  (let [context @(component-context (:conn datview) ::attr-values-view {:datview/locals (meta pull-expr)})
         collapsable? (:datview.collapse/collapsable? context)
         ;; Should put all of the collapsed values in something we can serialize, so we always know what's collapsed
         collapse-attribute? (r/atom (:datview.collapse/default context))]
-    (fn [conn pull-expr attr-ident values]
+    (fn [datview pull-expr attr-ident values]
       [:div (:dom/attrs context)
        (when collapsable?
          [collapse-button collapse-attribute?])
        (when @collapse-attribute?
-         [collapse-summary conn context values])
-          ;(defn pull-summary-view [conn pull-expr pull-data]
+         [collapse-summary datview context values])
+          ;(defn pull-summary-view [datview pull-expr pull-data]
        (when (or (not collapsable?) (and collapsable? (not @collapse-attribute?)))
          (for [value (utils/deref-or-value values)]
            ^{:key (hash value)}
-           [value-view conn pull-expr attr-ident value]))])))
+           [value-view datview pull-expr attr-ident value]))])))
 
 
-(defn cardinality
-  [conn attr-ident])
 
 ;; Need to have controls etc here
 (defn attr-view
-  [conn pull-expr attr-ident values]
-  [:div (:dom/attrs @(component-context conn ::attr-view {:datview/locals (meta pull-expr)})) 
-  ;[:div @(attribute-context conn (meta pull-expr) :attr-view)
-   [label-view conn attr-ident]
-   (match [@(attribute-signature-reaction conn attr-ident)]
+  [datview pull-expr attr-ident values]
+  [:div (:dom/attrs @(component-context datview ::attr-view {:datview/locals (meta pull-expr)})) 
+  ;[:div @(attribute-context datview (meta pull-expr) :attr-view)
+   [label-view datview attr-ident]
+   (match [@(attribute-signature-reaction datview attr-ident)]
      [{:db/cardinality :db.cardinality/many}]
-     [attr-values-view conn pull-expr attr-ident values]
+     [attr-values-view datview pull-expr attr-ident values]
      :else
-     [value-view conn pull-expr attr-ident values])])
+     [value-view datview pull-expr attr-ident values])])
 
 
 ;; ## Security
@@ -538,26 +493,26 @@
   "Given a DS connection, a datview pull-expression and data from that pull expression (possibly as a reaction),
   render the UI subject to the pull-expr metadata."
   ;; Should be able to bind the data to the type dictated by pull expr
-  ([conn, pull-expr, pull-data]
+  ([datview, pull-expr, pull-data]
    ;; Annoying to have to do this
-   (let [context @(component-context conn ::pull-data-view {:datview/locals (meta pull-expr)})
+   (let [context @(component-context datview ::pull-data-view {:datview/locals (meta pull-expr)})
          pull-data (utils/deref-or-value pull-data)]
      [:div (:dom/attrs context)
       [:div
-        (when-let [controls @(component-context conn ::pull-view-controls)]
-          [(:datview/component controls) conn pull-expr pull-data])
+        (when-let [controls @(component-context datview ::pull-view-controls)]
+          [(:datview/component controls) datview pull-expr pull-data])
         (when-let [summary (:summary context)]
           [:div {:style (merge h-box-styles)}
-           [summary conn pull-expr pull-data]])]
+           [summary datview pull-expr pull-data]])]
       ;; XXX TODO Questions:
       ;; Need a react-id function that lets us repeat attrs when needed
       (for [attr-ident (pull-attributes pull-expr pull-data)]
         ^{:key (hash attr-ident)}
-        [attr-view conn pull-expr attr-ident (get pull-data attr-ident)])])))
+        [attr-view datview pull-expr attr-ident (get pull-data attr-ident)])])))
 
 (defn pull-view
-  ([conn pull-expr eid]
-   [pull-data-view conn pull-expr (posh/pull conn pull-expr eid)]))
+  ([datview pull-expr eid]
+   [pull-data-view datview pull-expr (posh/pull (:conn datview) pull-expr eid)]))
 
 
 ;; General purpose sortable collections in datomic/ds?
@@ -565,26 +520,26 @@
 
 
 (defn attr-sort-by
-  [conn attr-ident]
-  (reaction (or (:db/ident (:attribute/sort-by @(posh/pull conn '[*] [:db/ident attr-ident])))
+  [datview attr-ident]
+  (reaction (or (:db/ident (:attribute/sort-by @(posh/pull (:conn datview) '[*] [:db/ident attr-ident])))
                 ;; Should add smarter option for :e/order as a generic? Or is this just bad semantics?
                 :db/id)))
 
 (defn value-type
-  [conn attr-ident]
-  (reaction (:db/valueType @(posh/pull conn '[*] [:db/ident attr-ident]))))
+  [datview attr-ident]
+  (reaction (:db/valueType @(posh/pull (:conn datview) '[*] [:db/ident attr-ident]))))
 
 (defn reference?
-  [conn attr-ident values]
-  (reaction (= (value-type conn attr-ident) :db.type/ref)))
+  [datview attr-ident values]
+  (reaction (= (value-type datview attr-ident) :db.type/ref)))
 
 ;; Can add matches to this to get different attr-idents to match differently; Sould do multimethod?
 ;; Cardinality many ref attributes should have an :attribute.ref/order-by attribute, and maybe a desc option
 ;; as well
 (defn sorted-values
-  [conn attr-ident values]
-  (reaction (if @(reference? conn attr-ident values)
-              (sort-by @(attr-sort-by conn attr-ident) values)
+  [datview attr-ident values]
+  (reaction (if @(reference? datview attr-ident values)
+              (sort-by @(attr-sort-by datview attr-ident) values)
               (sort values))))
 
 
@@ -651,29 +606,40 @@
 
 
 ;; Here's where everything comes together
-;; The Datview object is what we pass around as the first argument to all our functions
+;; Datview record instances are what we pass along to our Datview component functions as the first argument.
+;; Abstractly, they are just a container for your database and communications functionality (via attributes :conn and :config).
+;; But in reality, they are actually Stuart Sierra components, with start and stop methods.
+;; You can either use these components standalone, by creating your datview instance with `(new-datview ...)`, and starting it with the `start` function (both defined below).
+;; Just know that 
 
-(defrecord Datview [conn ;; You can access this for your posh queries;
-                    config ;; How you control the instantiation of Datview; options:
-                    ;; * :datascript/schema
-                    ;; * 
-                    comms ;; Actual component dependency; Something implementing the datview.comms/Comms protocol
-                    message-handler message-chan] ;; These are things we cache from our comms dependency for internal use
+(defrecord Datview 
+  ;;  The public API: these two attributes
+  [conn ;; You can access this for your posh queries;
+   config ;; How you control the instantiation of Datview; options:
+   ;; * :datascript/schema
+   ;; * 
+   comms ;; Actual component dependency; Something implementing the datview.comms protocols
+   message-handler ;; message-handler function, if obtainable, of comms
+   message-chan] ;; message-chan, if obtainable via comms
   component/Lifecycle
   (start [component]
-    (js/console.log "Starting DSComponent")
+    (js/console.log "Starting Datview")
     (let [base-schema (utils/merge datsync/base-schema (:datascript/schema config))
-          conn (or conn (d/create-conn datsync/base-schema))] 
+          conn (or conn (d/create-conn datsync/base-schema))
+          message-chan (if (satisfies?))]
       (d/transact! conn datview/default-settings)
       (posh/posh! conn) ;; Not sure if this is the best place for this
       (assoc component
              :conn conn
-             ())))
+             :comms)))
   (stop [component]
     component))
 
 
-(defn new-datview [options])
-  (map->DSConn {:options options}))
+(defn new-datview
+  ([options]
+   (map->Datview {:options options}))
+  ([]
+   (new-datview {})))
 
 
