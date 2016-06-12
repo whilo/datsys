@@ -10,8 +10,8 @@
    [clojure.test :as test]
    [com.stuartsierra.component :as component]
    [clojure.tools.namespace.repl :refer [refresh refresh-all]]
-   [catalysis.config :as config]
-   [catalysis.system :as system]))
+   [dat.sys.config :as config]
+   [dat.sys.system :as system]))
 
 (def system nil)
 

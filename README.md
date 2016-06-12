@@ -1,5 +1,5 @@
 
-![Catalysis](catalysis.jpg)
+![Datsys](catalysis.jpg)
 
 Full stack `(+ datsync datview posh datomic datascript #?(:maybe-future [onyx]))` accelerated clj/cljs reactive web development.
 
@@ -13,7 +13,7 @@ Full stack `(+ datsync datview posh datomic datascript #?(:maybe-future [onyx]))
 
 ## Introduction
 
-Catalysis is a full stack web application template with:
+Datsys (formerly Catalysis) is a full stack web application template with:
 
 * [Re-frame](https://github.com/Day8/re-frame)/Samza data flow all the way down
 * full database replication between a central Datomic server and remote DataScript client servers via Datsync (optimistic updates coming soon)
@@ -46,7 +46,7 @@ For right now at least, this serves as an example setup of [datsync](https://git
 
 ## Usage
 
-To get running, clone, and cd into the project directory (`catalysis`).
+To get running, clone, and cd into the project directory (`datsys`).
 
 
 ### Figwheel
@@ -78,7 +78,7 @@ This will initialize a `system` var in the `user` ns, bind the new system instan
 
 If you need to reset the system, call `reset`.
 You can also call something like `(run {:server {:port 8882}})` to specify config overrides.
-The schema for this is in `catalysis.config`.
+The schema for this is in `datsys.config`.
 Unfortunately, not sure yet how to get the `reset` function to also accept the `config-overrides` option.
 
 And maybe eventually we'll also helpers for running multiple instances at once to test different things...
@@ -89,7 +89,7 @@ But one step at a time :-)
 
 Next, point browser to:
 <http://localhost:2358> (or whatever you set $PORT to)
-You should see a page that says "Congrats! You've got a catalysis app running :-)".
+You should see a page that says "Congrats! You've got a datsys app running :-)".
 
 After a few seconds or so, once connections have established and data transacted, you should see a todo list render.
 If not, check out your console.
@@ -108,7 +108,7 @@ But you'll surely soon want to start reshaping things into your own project.
 
 ### Config
 
-This application uses a system configuration component found in `catalysis.config`.
+This application uses a system configuration component found in `dat.sys.config`.
 There's a default settings map there you can edit, and all settings are customizable via environment variables or run time arguments.
 Feel free to extend this for your needs to keep all your config logic in one place.
 
@@ -119,18 +119,18 @@ Because of the seamless shuttling of data back and forth between server and clie
 
 The schema file is located in `resources/schema.edn`.
 The data in this file is a [conformity](https://github.com/rkneufeld/conformity) spec, so you can continue to use this same file for all your migrations.
-If you want to see how these migrations are hooked up, take a look at the `catalysis.datomic/Datomic` component.
+If you want to see how these migrations are hooked up, take a look at the `dat.sys.datomic/Datomic` component.
 
 There's also some seed data in `resources/test-data.edn` for you to play with.
 
 
 ### Front end components
 
-The main namespace for the client is `catalysis.client.app`.
+The main namespace for the client is `dat.sys.client.app`.
 This is where everything hooks together.
 We may eventually set up Stuart Sierra's component here as well, but for now, think of this as your system bootstrap process.
 
-Views are in `catalysis.client.views`, and you'll note that the `main` function there is hooked up at the end of the `app` namespace.
+Views are in `dat.sys.client.views`, and you'll note that the `main` function there is hooked up at the end of the `app` namespace.
 This is where you write your view code.
 
 This view code is written in a combination of [Reagent](https://github.com/reagent-project/reagent) and Posh, upon which [Datview](src/datview/README.md) is based, and there's a lot to learn for each of these.
@@ -152,7 +152,7 @@ There's a partial description in the wiki of how to get Datomic Pro set up with 
 
 (Disclaimer: I haven't tried this)
 
-To make Catalysis run on Heroku, you need to let Leiningen on Heroku use the "package" build task.
+To make Datsys run on Heroku, you need to let Leiningen on Heroku use the "package" build task.
 
 To do this, and point Leiningen on Heroku to the "package" target, add the following config variable to Heroku by running this command:
 
@@ -175,7 +175,7 @@ I've you've been using it for mobile apps, please write about it (blog post, twe
 
 ### More coming soon...
 
-* Catalysis as an Arachne plugin? A meta-framework, perhaps...
+* Datsys as an Arachne plugin?
 
 
 ## Contributions

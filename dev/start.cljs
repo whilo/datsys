@@ -1,7 +1,6 @@
 (ns catalysis.start
   (:require [figwheel.client :as fw]
-            [catalysis.client.db :as db]
-            [catalysis.client.app :as app]))
+            [dat.sys.client.app :as app]))
 
 (enable-console-print!)
 

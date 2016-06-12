@@ -1,8 +1,8 @@
-(defproject catalysis "1.0.0"
+(defproject datsys "1.0.0"
   :description "On opinionated (+ clj cljs datomic datascript (reagent react) web development framework" ;;should this be "an" or "un"?
-  ;; Change to catalysis.io eventually...
-  :url "https://github.com/metasoarous/catalysis"
+  :url "https://github.com/metasoarous/datsys"
   :license {:name "Eclipse Public License"
+  ;; Change to datsys eventually...
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.7.0"]
@@ -51,20 +51,26 @@
   :source-paths ["src"
                  ;; Can uncomment to test development of datsync or datview (must also check out said projects
                  ;; in libs for this to work)
-                 ;"libs/datsync/src"
-                 "libs/datview/src"]
+                 "libs/datsync/src"
+                 "libs/datview/src"
+                 "libs/datreactor/src"
+                 "libs/datspec/src"]
   :resource-paths ["resources" "resources-index/prod"]
   :target-path "target/%s"
-  :main ^:skip-aot catalysis.run
+  :main ^:skip-aot dat.sys.run
   :repl-options {:init-ns user}
-  :cljsbuild {:builds {:client {:source-paths ["src/catalysis/client" "libs/datview/src"]
+  :cljsbuild {:builds {:client {:source-paths ["src/dat/sys/client"
+                                               "libs/datview/src"
+                                               "libs/datsync/src"
+                                               "libs/datreactor/src"
+                                               "libs/datspec/src"]
                                 :compiler {:output-to "resources/public/js/app.js"
                                            :output-dir "dev-resources/public/js/out"}}
                        :devcards {:source-paths ["src"]
                                   :figwheel {:devcards true}  ;; <- note this
-                                  :compiler {:main    "catalysis.client.cards"
+                                  :compiler {:main    "dat.sys.client.cards"
                                              :asset-path "js/compiled/devcards_out"
-                                             :output-to  "resources/public/js/catalysis_devcards.js"
+                                             :output-to  "resources/public/js/datsys_devcards.js"
                                              :output-dir "resources/public/js/devcards_out"
                                              :source-map-timestamp true}}}}
   :figwheel {:server-port 3448
@@ -72,7 +78,7 @@
   :profiles {:dev-config {}
              :dev [:dev-config
                    {:dependencies [[alembic "0.3.2"]
-                                   [figwheel "0.5.0-3"]
+                                   [figwheel "0.5.4"]
                                    [devcards "0.2.1"]]
                     :plugins [[lein-figwheel "0.3.9" :exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]]
                               [com.palletops/lein-shorthand "0.4.0"]

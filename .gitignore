@@ -19,3 +19,4 @@ data
 datomic/
 # You can run a local checkout of datsync here
 libs/datsync
+Session.vim
