@@ -51,7 +51,7 @@
        ;; doing resolution expansion
        (try
          (handle-event! app db' event)
-         (catch Exception e
+         (catch #?(:clj Exception :cljs :default) e
            ;; Be warry of unhalting recurs here:
            (dispatcher/dispatch-error! app [:datview.resolver/error {:datview.error/event event :datview.js/error e}])
            (if catch?
@@ -60,10 +60,10 @@
              (with-meta (reduced db') (merge (meta db') {:datview.resolver/error e}))))))
      db
      ;; So we can do (when ...) in our blocks
-     (remove nil? events))
+     (remove nil? events)))
    ;; This should raise, but doesn't
-   ([app db events]
-    (resolve-to app db events {}))))
+  ([app db events]
+   (resolve-to app db events {})))
 
 
 
@@ -88,7 +88,7 @@
   (fn [app db event]
     (if (meta db)
       db
-      (with-meta (meta db)))))
+      (with-meta db (meta db)))))
 
 (defn register-handler
   "Register an event handler. Optionally specify middleware as second arg. Can be a vector of such fns, as well.
@@ -200,7 +200,7 @@
 (register-handler ::local-tx
   (fn [app db [_ tx-forms]]
     (let [tx-report (d/with db tx-forms)]
-      (with-effect app db
+      (with-effect
         [::execute-tx-report-handler tx-report]
         (resolve-to app db [[::resolve-tx-report tx-report]])))))
 
@@ -244,7 +244,7 @@
 (defrecord SimpleReactor [app dispatcher conn]
   component/Lifecycle
   (start [reactor]
-    (go-react! reactor)
+    (go-react! reactor app)
     (assoc reactor
            :conn (or conn (:conn app) (d/create-conn))))
   (stop [reactor]

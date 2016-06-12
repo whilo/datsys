@@ -1,4 +1,4 @@
-(ns datview.settings
+(ns dat.view.settings
   (:require [datascript.core :as d]
             [posh.core :as posh]))
             

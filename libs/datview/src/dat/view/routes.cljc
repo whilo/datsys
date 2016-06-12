@@ -1,4 +1,4 @@
-(ns datview.routes
+(ns dat.view.routes
   (:require [bidi.bidi :as bidi]))
 
 

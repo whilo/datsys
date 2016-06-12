@@ -1,4 +1,4 @@
-(ns catalysis.shared.utils)
+(ns dat.sys.shared.utils)
 
 (defn deref-or-value
   [val-or-atom]

@@ -2,13 +2,13 @@
     (:require-macros [cljs.core.async.macros :refer [go-loop]]
                      [reagent.ratom :refer [reaction]])
     (:require [dat.view :as view]
-              [dat.reactor]
+              [dat.reactor :as reactor]
               [dat.remote]
               [dat.remote.impl.sente :as sente]
               [dat.sync.client :as dat.sync]
-              [dat.sys.client.views]
+              [dat.sys.client.views :as views]
               [dat.sys.client.events]
-              [dat.reactor.dispatcher]
+              [dat.reactor.dispatcher :as dispatcher]
               [reagent.core :as reagent]
               [com.stuartsierra.component :as component]
               [posh.core :as posh]
@@ -30,10 +30,10 @@
         :remote     (sente/new-sente-remote)
         :dispatcher (dispatcher/new-strictly-ordered-dispatcher)
         :app        (component/using
-                      (view/new-datview {:dat.view/main views/main})
+                      (view/new-datview {:main views/main})
                       [:remote :dispatcher])
         :reactor    (component/using
-                      (dat.sync/new-datsync-reactor)
+                      (reactor/new-simple-reactor)
                       [:remote :dispatcher :app]))))
 
 

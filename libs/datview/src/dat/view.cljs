@@ -1,17 +1,17 @@
 (ns dat.view
   "# Datview"
   (:require-macros [reagent.ratom :refer [reaction]])
-  (:require [posh.core :as posh]
-            [com.stuartsierra.component :as component]
+  (:require [dat.reactor :as reactor]
+            [dat.reactor.dispatcher :as dispatcher]
             [dat.view.router :as router]
             [dat.view.utils :as utils]
             [dat.sync.client :as dat.sync]
+            [datascript.core :as d]
+            [posh.core :as posh]
             [reagent.core :as r]
             [reagent.ratom :as ratom]
-            [re-frame.core :as re-frame]
             [re-com.core :as re-com]
-            [posh.core :as posh]
-            [datascript.core :as d]
+            [com.stuartsierra.component :as component]
             [goog.date.Date]
             [cljs-time.core :as cljs-time]
             [cljs-time.format]
@@ -317,10 +317,11 @@
              :font-weight "bold"}
      :label
      ;; XXX Again, should be pull-based
-     (or @(posh/q (:conn app) '[:find ?attr-label .]
-                         :in $ ?attr-ident
-                         :where [?attr :db/ident ?attr-ident]
-                                [?attr :attribute/label ?attr-label]
+     (or @(posh/q (:conn app)
+                  '[:find ?attr-label .
+                    :in $ ?attr-ident
+                    :where [?attr :db/ident ?attr-ident]
+                           [?attr :attribute/label ?attr-label]]
                   attr-ident)
          (lablify-attr-ident attr-ident))]))
 
@@ -599,11 +600,12 @@
    ;; Component dependencies:
    remote  ;; Something implementing the dat.remote protocols; If not specified as a dependency, fetches from reactor
    reactor ;; A DatReactor component
-   own-reactor?]
+   own-reactor?
+   main] ;; Need to make this a clear requirement
   component/Lifecycle
   (start [component]
     (js/console.log "Starting Datview")
-    (let [base-schema (utils/merge dat.sync/base-schema (:datascript/schema config))
+    (let [base-schema (utils/deep-merge dat.sync/base-schema (:datascript/schema config))
           remote (or remote (:remote reactor))
           own-reactor? (not reactor)
           reactor (or reactor (reactor/new-simple-reactor))
@@ -615,12 +617,12 @@
       (posh/posh! conn)
       ;; Install with Reagent
       (when-let [root (.getElementById js/document "app")]
-        (reagent/render-component [main component] root))
+        (r/render-component [main component] root))
       (assoc component
              :remote remote)))
   (stop [component]
     (when own-reactor?
-      (component/close reactor))
+      (component/stop reactor))
     (assoc component
            :reactor nil
            :own-reactor? nil

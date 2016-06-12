@@ -1,4 +1,4 @@
-(ns datview.forms
+(ns dat.view.forms
   "# Datview forms"
   (:require-macros [reagent.ratom :refer [reaction]])
   (:require [dat.view.router :as router]
