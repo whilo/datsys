@@ -30,7 +30,8 @@
         :remote     (sente/new-sente-remote)
         :dispatcher (dispatcher/new-strictly-ordered-dispatcher)
         :app        (component/using
-                      (view/new-datview {:main views/main})
+                      ;; Should also be able to specify your own conn here, though one will be created for you
+                      (view/new-datview {:dat.view/main views/main})
                       [:remote :dispatcher])
         :reactor    (component/using
                       (reactor/new-simple-reactor)
@@ -84,5 +85,6 @@
 ;; Just start the component!
 
 (defn ^:export main []
+  (println "Running main")
   (component/start (new-system)))
 

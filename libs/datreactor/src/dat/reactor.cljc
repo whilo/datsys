@@ -4,6 +4,7 @@
                 :cljs [[cljs.core.async :as async]])
             #?(:clj [clojure.tools.logging :as log])
             [dat.spec.protocols :as protocols]
+            ;[dat.reactor.utils :as utils]
             [dat.reactor.dispatcher :as dispatcher]
             [datascript.core :as d]
             [com.stuartsierra.component :as component]))
@@ -233,7 +234,7 @@
               (with-meta new-db (dissoc ::effects (meta new-db))))
             ;; We might just want to have our own error channel here, and set an option in the reactor
             (catch #?(:clj Exception :cljs :default) e
-              (dispatch-error! reactor [::error {:error e :event event}] :error)
+              (dispatch-error! reactor [::error {:error e :event event}])
               current-db))))
       (when-let [effects (seq (::effects @final-meta))]
         (doseq [effect effects]
@@ -244,6 +245,7 @@
 (defrecord SimpleReactor [app dispatcher conn]
   component/Lifecycle
   (start [reactor]
+    (println "Starting SimpleReactor Component")
     (go-react! reactor app)
     (assoc reactor
            :conn (or conn (:conn app) (d/create-conn))))

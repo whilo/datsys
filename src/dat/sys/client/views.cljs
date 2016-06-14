@@ -59,12 +59,16 @@
 
 (defn type-instance-eids-rx
   [app type-ident]
+  (println "Type instances eids app:" app)
   (posh/q (:conn app) '[:find [?e ...] :in $ ?type-ident :where [?e :e/type ?type-ident]] [:db/ident type-ident]))
 
 ;; Now we can put these things together into a Reagent component
 
 (defn todos-view [app]
-  (let [todo-eids @(type-instance-eids-rx (:conn app) :e.type/Todo)]
+  (let [todo-eids (type-instance-eids-rx app :e.type/Todo)
+        _ (println "Pre-deref" todo-eids)
+        todo-eids @todo-eids
+        _ (println "post dref" todo-eids)]
     [re-com/v-box
      :margin "20px 5px 5px"
      :children [[:h2 "Todos"]

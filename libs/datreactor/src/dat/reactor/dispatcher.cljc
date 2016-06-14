@@ -2,6 +2,7 @@
   #?(:cljs (:require-macros [cljs.core.async.macros :as async-macros :refer [go go-loop]]))
   (:require #?@(:clj [[clojure.core.async :as async :refer [go go-loop]]]
                 :cljs [[cljs.core.async :as async]])
+            ;[dat.reactor.utils :as utils]
             [com.stuartsierra.component :as component]
             [dat.spec.protocols :as protocols]))
 
@@ -39,13 +40,17 @@
   ;; Should make pluggable config options for the chan creation
   component/Lifecycle
   (start [component]
+    ;(utils/log "Starting StrictlyOrderedDispatcher component")
+    (println "Starting StrictlyOrderedDispatcher")
     (let [component (assoc component
-                           :dispatch-chan (or dispatch-chan (async/chan 100)))])
-    component)
+                           :dispatch-chan (or dispatch-chan (async/chan 100)))]
+      component))
   (stop [component]
-    component)
+    (async/close! dispatch-chan)
+    (assoc component :dispatch-chan nil))
   protocols/PDispatcher
   (dispatch! [component event level]
+    (println "Here we are with dispatch-chan:" dispatch-chan)
     (go (async/>! dispatch-chan event)))
   ;; Here, the event chan is just the dispatch chan...
   (dispatcher-event-chan [component]
@@ -73,12 +78,12 @@
                            ;; This should have no buffer so that it doesn't grab a dispatch event and put it in
                            ;; the buffer just before an error event comes in
                            :event-chan (async/chan))])
-    (go-loop []
-      ;; Hmm... this actually doesn't have the semantics we want, since 1 default chan event could get
-      ;; through before the event chan is ready to take yet
-      (let [[event chan] (async/alts! [error-chan default-chan])]
-        (async/>! event-chan event)))
-    component)
+      (go-loop []
+        ;; Hmm... this actually doesn't have the semantics we want, since 1 default chan event could get
+        ;; through before the event chan is ready to take yet
+        (let [[event chan] (async/alts! [error-chan default-chan])]
+          (async/>! event-chan event)))
+      component)
   (stop [component]
     component)
   protocols/PDispatcher

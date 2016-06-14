@@ -1,6 +1,7 @@
 (ns dat.view
   "# Datview"
-  (:require-macros [reagent.ratom :refer [reaction]])
+  (:require-macros [reagent.ratom :refer [reaction]]
+                   [cljs.core.async.macros :as async-macros :refer [go go-loop]])
   (:require [dat.reactor :as reactor]
             [dat.reactor.dispatcher :as dispatcher]
             [dat.view.router :as router]
@@ -14,6 +15,7 @@
             [com.stuartsierra.component :as component]
             [goog.date.Date]
             [cljs-time.core :as cljs-time]
+            [cljs.core.async :as async]
             [cljs-time.format]
             [cljs-time.coerce]
             [cljs.pprint :as pp]
@@ -597,36 +599,37 @@
    config ;; How you control the instantiation of Datview; options:
    ;; * :datascript/schema
    ;; * :dat.view/conn
-   ;; Component dependencies:
+   ;; Other (semi-)optional dependencies
    remote  ;; Something implementing the dat.remote protocols; If not specified as a dependency, fetches from reactor
-   reactor ;; A DatReactor component
-   own-reactor?
+   dispatcher ;; Something implementing the dispatcher protocols
    main] ;; Need to make this a clear requirement
   component/Lifecycle
   (start [component]
-    (js/console.log "Starting Datview")
-    (let [base-schema (utils/deep-merge dat.sync/base-schema (:datascript/schema config))
-          remote (or remote (:remote reactor))
-          own-reactor? (not reactor)
-          reactor (or reactor (reactor/new-simple-reactor))
-          conn (or conn (::conn config) (:conn reactor))
-          component (assoc component :remote remote :conn conn :reactor reactor :own-reactor? own-reactor?)]
-      ;; Transact default settings to db
-      (d/transact! conn default-settings)
-      ;; Start posh
-      (posh/posh! conn)
-      ;; Install with Reagent
-      (when-let [root (.getElementById js/document "app")]
-        (r/render-component [main component] root))
-      (assoc component
-             :remote remote)))
+    (try
+      (js/console.log "Starting Datview")
+      (let [base-schema (utils/deep-merge dat.sync/base-schema (:datascript/schema config))
+            ;; Should try switching to r/atom
+            ;conn (or conn (::conn config) (r/atom (d/empty-db base-schema)))
+            conn (or conn (::conn config) (d/create-conn base-schema))
+            main (or main (::main config))
+            component (assoc component :conn conn :main main)]
+        ;; Transact default settings to db
+        (d/transact! conn default-settings)
+        ;; Start posh
+        (posh/posh! conn)
+        (println "Rendering Datview :main"
+        ;; Install with Reagent
+          (when-let [root (.getElementById js/document "app")]
+            (r/render-component [main component] root)))
+        (println "Render called")
+        component)
+      (catch :default e
+        (println "Error starting Datview:" e)
+        (println (.-stack e))
+        component)))
   (stop [component]
-    (when own-reactor?
-      (component/stop reactor))
     (assoc component
            :reactor nil
-           :own-reactor? nil
-           :remote nil
            :conn nil)))
 
 
