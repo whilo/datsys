@@ -65,10 +65,7 @@
 ;; Now we can put these things together into a Reagent component
 
 (defn todos-view [app]
-  (let [todo-eids (type-instance-eids-rx app :e.type/Todo)
-        _ (println "Pre-deref" todo-eids)
-        todo-eids @todo-eids
-        _ (println "post dref" todo-eids)]
+  (let [todo-eids @(type-instance-eids-rx app :e.type/Todo)]
     [re-com/v-box
      :margin "20px 5px 5px"
      :children [[:h2 "Todos"]
