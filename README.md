@@ -1,6 +1,8 @@
 
 ![Catalysis](catalysis.jpg)
 
+(Soon to be Datsys)
+
 Full stack `(+ datsync datview posh datomic datascript #?(:maybe-future [onyx]))` accelerated clj/cljs reactive web development.
 
 
@@ -13,9 +15,9 @@ Full stack `(+ datsync datview posh datomic datascript #?(:maybe-future [onyx]))
 
 ## Introduction
 
-Catalysis is a full stack web application template with:
+Datsys is a full stack web application template with:
 
-* [Re-frame](https://github.com/Day8/re-frame)/Samza data flow all the way down
+* [Re-frame](https://github.com/Day8/re-frame)/Samza data flow all the way down (and soon more generalized event handling mechanisms).
 * full database replication between a central Datomic server and remote DataScript client servers via Datsync (optimistic updates coming soon)
 * composable, data-driven view/query specifications a la [Posh](https://github.com/mpdairy/posh) & [Datview](src/datview/README.md) (see below).
 
@@ -43,10 +45,13 @@ The application is currently loading data from datomic and rendering some simple
 Client -> Server write examples should be coming soon.
 For right now at least, this serves as an example setup of [datsync](https://github.com/metasoarous/datsync) data flow, Datview & Posh
 
+Right now we're in the middle of a major refactor to attain a more pluggable system architecture.
+You can take a look at that in the `grand-refactor` branch.
+
 
 ## Usage
 
-To get running, clone, and cd into the project directory (`catalysis`).
+To get running, clone, and cd into the project directory (`catalysis`, soon `datsys`).
 
 
 ### Figwheel
@@ -93,6 +98,7 @@ You should see a page that says "Congrats! You've got a catalysis app running :-
 
 After a few seconds or so, once connections have established and data transacted, you should see a todo list render.
 If not, check out your console.
+(Actually, right now there's a bug and this is broken; You can save a file to get figwheel to trigger a fix, but we should have a more serious fix coming up when we move over from the grand-refactor branch).
 
 <br/>
 
