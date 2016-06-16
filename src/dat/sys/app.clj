@@ -1,7 +1,7 @@
 (ns dat.sys.app
   (:require [dat.sys.datomic :as datomic]
             [dat.sys.ws :as ws]
-            [dat.sync.server :as datsync]
+            [dat.sync.server :as dat.sync]
             [clojure.tools.logging :as log]
             [com.stuartsierra.component :as component]
             [slingshot.slingshot :as slingshot :refer [throw+ try+]]
@@ -42,21 +42,21 @@
   [_ _]
   (log/debug "Ping"))
 
-;; Setting up our two main datsync hooks
+;; Setting up our two main dat.sync hooks
 
 ;; General purpose transaction handler
-(defmethod event-msg-handler :datsync.remote/tx
+(defmethod event-msg-handler :dat.sync.remote/tx
   [{:as app :keys [datomic]} {:as event-msg :keys [id ?data]}]
   (log/info "tx recieved from client: " id)
-  (let [tx-report @(datsync/apply-remote-tx! (:conn datomic) ?data)]
+  (let [tx-report @(dat.sync/apply-remote-tx! (:conn datomic) ?data)]
     (println "Do something with:" tx-report)))
 
 ;; We handle the bootstrap message by simply sending back the bootstrap data
-(defmethod event-msg-handler :datsync.client/bootstrap
+(defmethod event-msg-handler :dat.sync.client/bootstrap
   ;; What is send-fn here? Does that wrap the uid for us? (0.o)
   [{:as app :keys [datomic ws-connection]} {:as event-msg :keys [id uid send-fn]}]
   (log/info "Sending bootstrap message")
-  (ws/send! ws-connection uid [:datsync.client/bootstrap (datomic/bootstrap (d/db (:conn datomic)))]))
+  (ws/send! ws-connection uid [:dat.sync.client/bootstrap (datomic/bootstrap (d/db (:conn datomic)))]))
 
 ;; Fallback handler; should send message saying I don't know what you mean
 (defmethod event-msg-handler :default ; Fallback
@@ -75,7 +75,7 @@
   ;; This handler is where you would eventually set up subscriptions
   (try
     (let [tx-deltas (filter-tx-deltas tx-deltas)]
-      (ws/broadcast! ws-connection [:datsync/tx-data tx-deltas]))
+      (ws/broadcast! ws-connection [:dat.sync/tx-data tx-deltas]))
     (catch Exception e
       (log/error "Failed to send transaction report to clients!")
       (.printStackTrace e))))
@@ -92,7 +92,7 @@
                           ;; There sould be a way of specifying app-wide middleware here
                           (partial event-msg-handler component))]
       ;; Start our transaction listener
-      (datsync/start-transaction-listener! (:tx-report-queue datomic) (partial handle-transaction-report! ws-connection))
+      (dat.sync/start-transaction-listener! (:tx-report-queue datomic) (partial handle-transaction-report! ws-connection))
       (assoc component :sente-stop-fn sente-stop-fn)))
   (stop [component]
     (log/debug "Stopping websocket router")

@@ -2,10 +2,12 @@
   #?(:cljs (:require-macros [cljs.core.async.macros :as async-macros :refer [go go-loop]]))
   (:require #?@(:clj [[clojure.core.async :as async :refer [go go-loop]]]
                 :cljs [[cljs.core.async :as async]])
-            #?(:clj [clojure.tools.logging :as log])
+            ;#?(:clj [clojure.tools.logging :as log])
+            [taoensso.timbre :as log #?@(:cljs [:include-macros true])]
             [dat.spec.protocols :as protocols]
             ;[dat.reactor.utils :as utils]
             [dat.reactor.dispatcher :as dispatcher]
+            [taoensso.timbre :as log #?@(:cljs [:include-macros true])]
             [datascript.core :as d]
             [com.stuartsierra.component :as component]))
 
@@ -45,6 +47,7 @@
   presently, errors do not bubble up. The last successful state of the db will be returned. Errors will be passed
   through to the :datview/error."
   ([app db events {:as options :keys [datview.resolver/catch?]}]
+   (log/info "Calling resolve-to with messages:" events)
    (reduce
      (fn [db' event]
        ;; Handles all the expanded events and at the very end ends up transacting the final state
@@ -54,11 +57,13 @@
          (handle-event! app db' event)
          (catch #?(:clj Exception :cljs :default) e
            ;; Be warry of unhalting recurs here:
-           (dispatcher/dispatch-error! app [:datview.resolver/error {:datview.error/event event :datview.js/error e}])
+           ;(dispatcher/dispatch-error! (:dispatcher app) [:dat.reactor.resolver/error {:dat.error/event event :datview.js/error e}])
+           (log/error e "Resolver exception:")
+           #?(:cljs (log/info (.-stack e)))
            (if catch?
              db'
              ;; Should we try merging in the error as metadata? Am I crazy like a fox?
-             (with-meta (reduced db') (merge (meta db') {:datview.resolver/error e}))))))
+             (reduced (with-meta db' (merge (meta db') {:datview.resolver/error e})))))))
      db
      ;; So we can do (when ...) in our blocks
      (remove nil? events)))
@@ -76,6 +81,7 @@
 ;; But in general there needs to be a lot of careful thought about how we synchronize state and side effects.
 
 
+
 ;; This thing should be state local to the datsync component, for the sake of running multiple systems,
 ;; methinks. Just don't want to have to bother writing the abstractions right now. Could use help on this TODO
 
@@ -87,9 +93,10 @@
 (defn preserve-meta
   [handler-fn]
   (fn [app db event]
-    (if (meta db)
-      db
-      (with-meta db (meta db)))))
+    (let [new-db (handler-fn app db event)]
+      (if (meta new-db)
+        new-db
+        (with-meta new-db (meta db))))))
 
 (defn register-handler
   "Register an event handler. Optionally specify middleware as second arg. Can be a vector of such fns, as well.
@@ -132,13 +139,14 @@
 (defn with-effects
   "Registers effects on the database value. This is the mode of communication for effect message which need to get processed."
   [effects db]
+  (log/debug "Calling with-effects:" effects)
   (with-meta
     db
     (update (meta db)
             ::effects
             concatv
             ;; This should hopefully let us run effects on the db values from whence they triggered
-            (map (fn [effect] (with-meta effects {:db db}))
+            (map (fn [effect] (with-meta effect {:db db}))
                  effects))))
 
 (defn with-effect
@@ -155,12 +163,11 @@
 (defn register-effect
   "Register an event handler. Optionally specify middleware as second arg. Can be a vector of such fns, as well.
   Middleware is typical in order; First in the sequence ends up being responsible for creating the handler function
-  that actually returns the final value. Except... We have some default handlers (see implementation, for now, till
   we spec this out). Also, calling this function registers an _event_ handler by the same effect-id; This should
   eventually act as a default, but not override any event handler already set up with the same id, but for now avoid
   collisions between event and effect ids."
   ([effect-id effect-fn]
-   (register-handler [] effect-fn))
+   (register-effect effect-id [] effect-fn))
   ;; Should also look at the arity of the fn to decide whether or not to pass through app; But always passes
   ;; through purely and statically from above; No reducing...
   ([effect-id middleware-fn effect-fn]
@@ -171,8 +178,13 @@
                                      pre-middleware))
          middleware-fn (apply comp middleware-fns)
          effect-fn (middleware-fn effect-fn)]
+     (log/info "Registering effect" effect-id)
      (defmethod execute-effect! effect-id
-       [app db effect] (effect-fn app db effect))
+       [app db effect]
+       (try
+         (effect-fn app db effect)
+         (catch #?(:clj Exception :cljs :default) e
+           (log/error "Error executing effect:" effect e))))
      ;; TODO Should try to only do this if there isn't already one set, so that this just behaves like a default...
      (defmethod handle-event! effect-id
        [app db effect]
@@ -184,19 +196,11 @@
 ;; middleware functions applied to the handler-fn.
 
 
-
+;; Events (default tx handling)
 
 (register-handler ::resolve-tx-report
   (fn [_ db [_ tx-report]]
     (:db-after tx-report)))
-
-;; For compatibility with DataScript handlers...
-(register-effect ::fire-tx-report-handlers!
-  (fn [app db [_ tx-report]]
-    ;; Hmm... would be nice to get hese from where they happen
-    (doseq [[_ callback] @(:listeners (meta (:conn app)))]
-      (callback tx-report))))
-  
 
 (register-handler ::local-tx
   (fn [app db [_ tx-forms]]
@@ -205,9 +209,30 @@
         [::execute-tx-report-handler tx-report]
         (resolve-to app db [[::resolve-tx-report tx-report]])))))
 
-(register-effect ::console-log
-  (fn [app db data]
-    (#?(:cljs js/console.log :clj log/info) "Logging:" data)))
+;; Effects
+
+;; For compatibility with DataScript handlers...
+(register-effect ::fire-tx-report-handlers!
+  (fn [app db [_ tx-report]]
+    ;; Hmm... would be nice to get hese from where they happen
+    (doseq [[_ callback] @(:listeners (meta (:conn app)))]
+      (callback tx-report))))
+  
+;(register-effect :dat/console-log
+  ;(fn [app db effect]
+    ;(log/info "Logging:" effect)))
+
+;; Defaults
+
+(register-handler :default
+  (fn [app db event]
+    (log/error "No definition for event:" event "You should probably go add one in your events ns")
+    db))
+
+(register-effect :default
+  (fn [app db event]
+    (log/error "No definition for event:" event "You should probably go add one in your events ns")
+    db))
 
 
 ;; ## Component
@@ -220,35 +245,55 @@
   If a handler fails, the effects will not fire (will eventually support control over
   this behavior)."
   [reactor app]
-  (go-loop []
-    ;; Should probably use dispatcher api's version of event-chan here...
-    (let [event (async/<! (protocols/dispatcher-event-chan (:dispatcher reactor)))
-          final-meta (atom nil)
-          conn (:conn reactor)]
-      (swap!
-        (:conn reactor)
-        (fn [current-db]
-          (try
-            (let [new-db (handle-event! reactor current-db event)]
-              (reset! final-meta (meta new-db))
-              (with-meta new-db (dissoc ::effects (meta new-db))))
-            ;; We might just want to have our own error channel here, and set an option in the reactor
-            (catch #?(:clj Exception :cljs :default) e
-              (dispatch-error! reactor [::error {:error e :event event}])
-              current-db))))
-      (when-let [effects (seq (::effects @final-meta))]
-        (doseq [effect effects]
-          ;; Not sure if the db will pass through properly here so that effects execute on the db values
-          ;; immediately following their execution trigger
-          (execute-effect! app (or (:db (meta effect)) @conn) effect))))))
+  (let [event-chan (protocols/dispatcher-event-chan (:dispatcher reactor))
+        conn (:conn reactor)]
+    (go-loop []
+      ;; Should probably use dispatcher api's version of event-chan here...
+      (try
+        (let [event (async/<! event-chan)
+              final-meta (atom nil)]
+          (log/debug "Reactor recieved event:" event)
+          (swap!
+            conn
+            (fn [current-db]
+              (try
+                (log/debug "Starting db update")
+                (let [new-db (handle-event! reactor current-db event)]
+                  (reset! final-meta (meta new-db))
+                  (log/info "Final meta in conn swap:" (meta new-db))
+                  ;; Here we dissoc the effects, because we need to not let them stack up
+                  (with-meta new-db (dissoc (meta new-db) ::effects)))
+                ;; We might just want to have our own error channel here, and set an option in the reactor
+                (catch #?(:clj Exception :cljs :default) e
+                  (log/error e "Exception in reactor swap for event: " event)
+                  #?(:clj (.printStackTrace e) :cljs (js/console.log (.-stack e)))
+                  ;(dispatch-error! reactor [::error {:error e :event event}])
+                  current-db))))
+          (when-let [effects (seq (::effects @final-meta))]
+            (doseq [effect effects]
+              ;; Not sure if the db will pass through properly here so that effects execute on the db values
+              ;; immediately following their execution trigger
+              (execute-effect! app (or (:db (meta effect)) @conn) effect))))
+        (catch #?(:cljs :default :clj Exception) e
+          (log/error e "Exception in reactor go loop")
+          #?(:clj (.printStackTrace e) :cljs (js/console.log (.-stack e)))))
+      (recur))))
+        
 
-(defrecord SimpleReactor [app dispatcher conn]
+(defrecord SimpleReactor [app dispatcher reactor conn]
   component/Lifecycle
   (start [reactor]
-    (println "Starting SimpleReactor Component")
-    (go-react! reactor app)
-    (assoc reactor
-           :conn (or conn (:conn app) (d/create-conn))))
+    (try
+      (let [reactor (assoc reactor
+                           :conn (or conn (:conn app) (d/create-conn)))]
+        (println "Starting SimpleReactor Component")
+        (go-react! reactor app)
+        reactor)
+      (catch #?(:clj Exception :cljs :default) e
+        (println "Error starting SimpleReactor:" e)
+        #?(:clj (.printStackTrace e)
+           :cljs (js/console.log (.-stack e)))
+        reactor)))
   (stop [reactor]
     reactor))
 

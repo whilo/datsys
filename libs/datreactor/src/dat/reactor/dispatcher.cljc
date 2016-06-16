@@ -2,6 +2,7 @@
   #?(:cljs (:require-macros [cljs.core.async.macros :as async-macros :refer [go go-loop]]))
   (:require #?@(:clj [[clojure.core.async :as async :refer [go go-loop]]]
                 :cljs [[cljs.core.async :as async]])
+            [taoensso.timbre :as log #?@(:cljs [:include-macros true])]
             ;[dat.reactor.utils :as utils]
             [com.stuartsierra.component :as component]
             [dat.spec.protocols :as protocols]))
@@ -50,7 +51,6 @@
     (assoc component :dispatch-chan nil))
   protocols/PDispatcher
   (dispatch! [component event level]
-    (println "Here we are with dispatch-chan:" dispatch-chan)
     (go (async/>! dispatch-chan event)))
   ;; Here, the event chan is just the dispatch chan...
   (dispatcher-event-chan [component]

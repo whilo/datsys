@@ -2,6 +2,7 @@
     (:require-macros [cljs.core.async.macros :refer [go-loop]]
                      [reagent.ratom :refer [reaction]])
     (:require [dat.view :as view]
+              [taoensso.timbre :as log :include-macros true]
               [dat.reactor :as reactor]
               [dat.remote]
               [dat.remote.impl.sente :as sente]
@@ -35,7 +36,10 @@
                       [:remote :dispatcher])
         :reactor    (component/using
                       (reactor/new-simple-reactor)
-                      [:remote :dispatcher :app]))))
+                      [:remote :dispatcher :app])
+        :datsync    (component/using
+                      (dat.sync/new-datsync)
+                      [:remote :dispatcher]))))
 
 
 ;; ## Customizing things

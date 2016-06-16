@@ -59,7 +59,6 @@
 
 (defn type-instance-eids-rx
   [app type-ident]
-  (println "Type instances eids app:" app)
   (posh/q (:conn app) '[:find [?e ...] :in $ ?type-ident :where [?e :e/type ?type-ident]] [:db/ident type-ident]))
 
 ;; Now we can put these things together into a Reagent component
@@ -89,7 +88,7 @@
    :children [[:h1 "Catalysis"]
               [:p {:style {:font-size "18px"}} "Congrats! You've got a catalysis app running :-)"]
               ;; A debug example:
-              ;[dat.view/debug "Here's a debug example:"
-               ;@(type-instance-eids-rx (:conn app) :e.type/Todo)]
+              [dat.view/debug "Here's a debug example:"
+               @(posh/q (:conn app) '[:find ?e :where [?e]])]
               [todos-view app]]])
 

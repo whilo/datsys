@@ -51,7 +51,8 @@
 
 (defn bootstrap
   [db]
-  (let [eids (map (fn [[e a v t]] e) (d/datoms db :eavt))]
+  ;; This could be a lot more perfomant; And should probably be generally smarter
+  (let [eids (distinct (map (fn [[e a v t]] e) (d/datoms db :eavt)))]
     (d/pull-many db '[*] eids)))
 
 

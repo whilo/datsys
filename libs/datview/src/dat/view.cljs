@@ -617,11 +617,10 @@
         (d/transact! conn default-settings)
         ;; Start posh
         (posh/posh! conn)
-        (println "Rendering Datview :main"
+        (println "Rendering Datview main component")
         ;; Install with Reagent
-          (when-let [root (.getElementById js/document "app")]
-            (r/render-component [main component] root)))
-        (println "Render called")
+        (when-let [root (.getElementById js/document "app")]
+          (r/render-component [main component] root))
         component)
       (catch :default e
         (println "Error starting Datview:" e)
@@ -648,6 +647,10 @@
 (defn dispatch!
   [app event]
   (dispatcher/dispatch! (:dispatcher app) event))
+
+(defn dispatch-error!
+  [app event]
+  (dispatcher/dispatch-error! (:dispatcher app) event))
 
 (defn send-tx! [app tx-forms]
   (dispatch! app [:dat.sync/send-remote-tx tx-forms]))

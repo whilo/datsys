@@ -238,7 +238,7 @@
                               :model checked?
                               :on-change (fn [checked-now?]
                                            (d/transact! conn [[(if checked-now? :db/add :db/retract) [:db/ident :table.view/column-selector] :table.view.column/attributes (:db/id attr-entity)]]))]
-                             [re-com/label :label (dat.view/entity-name attr-entity)]]]
+                             [re-com/label :label (dat.view/pull-summary attr-entity)]]]
                  (when @checked?
                    ;; Present types for possible expansion
                    [re-com/v-box
