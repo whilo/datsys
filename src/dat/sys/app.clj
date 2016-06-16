@@ -75,7 +75,7 @@
   ;; This handler is where you would eventually set up subscriptions
   (try
     (let [tx-deltas (filter-tx-deltas tx-deltas)]
-      (ws/broadcast! ws-connection [:dat.sync/tx-data tx-deltas]))
+      (ws/broadcast! ws-connection [:dat.sync.client/recv-remote-tx tx-deltas]))
     (catch Exception e
       (log/error "Failed to send transaction report to clients!")
       (.printStackTrace e))))

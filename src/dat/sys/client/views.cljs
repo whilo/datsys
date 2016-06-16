@@ -73,7 +73,6 @@
      :margin "20px 5px 5px"
      :children [[:h2 "Todos"]
                 [:p "Below are forms and views for each todo item in the database:"]
-                [:p "(There should be stuff showing up here, but there isn't just yet)"]
                 (for [todo todo-eids]
                   ^{:key todo}
                   [:div {:style {:margin "20px 5px"}}

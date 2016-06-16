@@ -35,7 +35,7 @@
   (dispatcher/dispatch-error! (:dispatcher app) event))
 
 (defn send-tx! [app tx-forms]
-  (dispatch! app [:dat.sync/send-remote-tx tx-forms]))
+  (dispatch! app [:dat.sync.client/send-remote-tx tx-forms]))
 
 
 
