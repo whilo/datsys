@@ -72,7 +72,8 @@
     [re-com/v-box
      :margin "20px 5px 5px"
      :children [[:h2 "Todos"]
-                [:p "Below are forms and views for each todo item in the database"]
+                [:p "Below are forms and views for each todo item in the database:"]
+                [:p "(There should be stuff showing up here, but there isn't just yet)"]
                 (for [todo todo-eids]
                   ^{:key todo}
                   [:div {:style {:margin "20px 5px"}}
@@ -92,7 +93,16 @@
    :children [[:h1 "Datsys"]
               [:p {:style {:font-size "18px"}} "Congrats! You've got a Datsys app running :-)"]
               ;; A debug example:
-              [dat.view/debug "todo instance eids:" @(type-instance-eids-rx app :e.type/Todo)]
+              ;[dat.view/debug "todo instance eids:" @(type-instance-eids-rx app :e.type/Todo)]
+              [dat.view/debug "Here's a debug example:"
+               @(posh/q (:conn app)
+                        ;; XXX TODO Note that changing the query here from ?t to ?t-ident doesn't update until you
+                        ;; reload the page. Also other errors... Should be updating the view dynamically
+                        '[:find ?e ?t-ident
+                        ;'[:find ?e ?t
+                          :where [?e :e/type ?t]
+                                 [?t :db/ident ?t-ident]])]
+              [:p "(This should be dynamically updating when we update the query but it isn't)"]
               ;[dat.view/debug "Here's a debug example:"
                ;@(posh/q (:conn app) '[:find ?e ?t
                                       ;:where [?e :e/type ?t]
