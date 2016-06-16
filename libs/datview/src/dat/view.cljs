@@ -618,10 +618,6 @@
         (d/transact! conn default-settings)
         ;; Start posh
         (posh/posh! conn)
-        (log/info "Rendering Datview main component")
-        ;; Install with Reagent
-        (when-let [root (.getElementById js/document "app")]
-          (r/render-component [main component] root))
         component)
       (catch :default e
         (log/error "Error starting Datview:" e)
@@ -656,5 +652,10 @@
 (defn send-tx! [app tx-forms]
   (dispatch! app [:dat.sync/send-remote-tx tx-forms]))
 
-
+(defn render
+  [app]
+  (log/info "Rendering Datview main component")
+  ;; Install with Reagent
+  (when-let [root (.getElementById js/document "app")]
+    (r/render-component [(:main app) app] root)))
 

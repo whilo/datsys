@@ -1,7 +1,7 @@
 (ns dat.sys.client.app
     (:require-macros [cljs.core.async.macros :refer [go-loop]]
                      [reagent.ratom :refer [reaction]])
-    (:require [dat.view :as view]
+    (:require [dat.view]
               [dat.reactor :as reactor]
               [dat.remote]
               [dat.remote.impl.sente :as sente]
@@ -32,7 +32,7 @@
         :dispatcher (dispatcher/new-strictly-ordered-dispatcher)
         :app        (component/using
                       ;; Should also be able to specify your own conn here, though one will be created for you
-                      (view/new-datview {:dat.view/main views/main})
+                      (dat.view/new-datview {:dat.view/main views/main})
                       [:remote :dispatcher])
         :reactor    (component/using
                       (reactor/new-simple-reactor)
@@ -53,7 +53,7 @@
 ;;             :dispatcher (dispatchers/new-strictly-ordered-dispatcher)
 ;;             :remote     (dat.sync/new-sente-remote)
 ;;             :reactor    (component/using (dat.sync/new-datsync-reactor) [:remote :dispatcher])
-;;             :app        (component/using (view/new-datview {:dat.view/main views/main} [:remote :reactor :dispatcher]))))
+;;             :app        (component/using (dat.view/new-datview {:dat.view/main views/main} [:remote :reactor :dispatcher]))))
 
 ;; If we don't specify :dispatcher or :remote, they get plugged in automatically by the datsync reactor, and
 ;; get plugged into datview for use in its components as well.
@@ -75,7 +75,7 @@
 ;;       (-> (component/system-map
 ;;             :reactor    (reactor/new-simple-reactor)
 ;;             :load-data  (component/using (your.ns/new-data-loader) [:reactor])
-;;             :app        (component/using (view/new-datview {:dat.view/main views/main} [:reactor :load-data]))))
+;;             :app        (component/using (dat.view/new-datview {:dat.view/main views/main} [:reactor :load-data]))))
 
 
 ;; ## Dev system
@@ -96,5 +96,6 @@
     (component/start (new-system))))
 
 (defn ^:export main []
-  (log/info "Running main function"))
+  (log/info "Running main function")
+  (dat.view/render (:app system)))
 
