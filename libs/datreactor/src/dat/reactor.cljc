@@ -47,7 +47,6 @@
   presently, errors do not bubble up. The last successful state of the db will be returned. Errors will be passed
   through to the :datview/error."
   ([app db events {:as options :keys [datview.resolver/catch?]}]
-   (log/info "Calling resolve-to with messages:" events)
    (reduce
      (fn [db' event]
        ;; Handles all the expanded events and at the very end ends up transacting the final state
@@ -178,7 +177,6 @@
                                      pre-middleware))
          middleware-fn (apply comp middleware-fns)
          effect-fn (middleware-fn effect-fn)]
-     (log/info "Registering effect" effect-id)
      (defmethod execute-effect! effect-id
        [app db effect]
        (try
@@ -252,7 +250,7 @@
       (try
         (let [event (async/<! event-chan)
               final-meta (atom nil)]
-          (log/debug "Reactor recieved event:" event)
+          ;(log/debug "Reactor recieved event:" event)
           (swap!
             conn
             (fn [current-db]
