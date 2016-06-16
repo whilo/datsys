@@ -138,7 +138,7 @@
 (defn with-effects
   "Registers effects on the database value. This is the mode of communication for effect message which need to get processed."
   [effects db]
-  (log/debug "Calling with-effects:" effects)
+  (log/debug "Adding effects for effect-ids:" (map first effects))
   (with-meta
     db
     (update (meta db)
@@ -206,13 +206,13 @@
     (log/debug "Handler :dat.reactor/local-tx called.")
     (let [tx-report (d/with db tx-forms)]
       (with-effect
-        [::execute-tx-report-handler tx-report]
+        [::execute-tx-report-handlers! tx-report]
         (resolve-to app db [[::resolve-tx-report tx-report]])))))
 
 ;; Effects
 
 ;; For compatibility with DataScript handlers...
-(register-effect ::fire-tx-report-handlers!
+(register-effect ::execute-tx-report-handlers!
   (fn [app db [_ tx-report]]
     ;; Hmm... would be nice to get hese from where they happen
     (log/debug "Effect handler :dat.reactor/fire-tx-report-handlers! called.")
