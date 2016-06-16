@@ -61,8 +61,9 @@
   [app type-ident]
   (posh/q (:conn app)
           '[:find [?e ...]
-            :in $ ?type-ident
-            :where [?e :e/type ?type-ident]] [:db/ident type-ident]))
+            :in $ ?type
+            :where [?e :e/type ?type]]
+          [:db/ident type-ident]))
 
 ;; Now we can put these things together into a Reagent component
 
@@ -88,8 +89,8 @@
   [re-com/v-box
    :margin "15px"
    :gap "15px"
-   :children [[:h1 "Catalysis"]
-              [:p {:style {:font-size "18px"}} "Congrats! You've got a catalysis app running :-)"]
+   :children [[:h1 "Datsys"]
+              [:p {:style {:font-size "18px"}} "Congrats! You've got a Datsys app running :-)"]
               ;; A debug example:
               [dat.view/debug "todo instance eids:" @(type-instance-eids-rx app :e.type/Todo)]
               ;[dat.view/debug "Here's a debug example:"

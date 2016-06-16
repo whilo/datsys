@@ -1,11 +1,14 @@
 (ns dat.sys.client.events
-  (:require [dat.reactor :as reactor]))
+  (:require [dat.reactor :as reactor]
+            [datascript.core :as d]))
 
 
 ;; This is where you would handle custom message ids, perhaps something like this
 
-;;     (defmethod reactor/handle-message! :your-special-message-id
-;;       [app [id data]]
-;;       (js/console.log "Data is:" data)
 
+;; Simple example that logs figwheel events
+(reactor/register-handler
+  :figwheel/reload
+  (fn [app db event]
+    (reactor/resolve-to app db [[:dat.reactor/local-tx [{:db/id -1 :event/id :figwheel/reload}]]])))
 
