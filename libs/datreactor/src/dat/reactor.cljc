@@ -58,7 +58,7 @@
            ;; Be warry of unhalting recurs here:
            ;(dispatcher/dispatch-error! (:dispatcher app) [:dat.reactor.resolver/error {:dat.error/event event :datview.js/error e}])
            (log/error e "Resolver exception:")
-           #?(:cljs (log/info (.-stack e)))
+           #?(:cljs (js/console.log (.-stack e)))
            (if catch?
              db'
              ;; Should we try merging in the error as metadata? Am I crazy like a fox?
@@ -198,10 +198,12 @@
 
 (register-handler ::resolve-tx-report
   (fn [_ db [_ tx-report]]
+    (log/debug "Handler :dat.reactor/resolve-tx-report called.")
     (:db-after tx-report)))
 
 (register-handler ::local-tx
   (fn [app db [_ tx-forms]]
+    (log/debug "Handler :dat.reactor/local-tx called.")
     (let [tx-report (d/with db tx-forms)]
       (with-effect
         [::execute-tx-report-handler tx-report]
@@ -213,6 +215,7 @@
 (register-effect ::fire-tx-report-handlers!
   (fn [app db [_ tx-report]]
     ;; Hmm... would be nice to get hese from where they happen
+    (log/debug "Effect handler :dat.reactor/fire-tx-report-handlers! called.")
     (doseq [[_ callback] @(:listeners (meta (:conn app)))]
       (callback tx-report))))
   
@@ -244,55 +247,62 @@
   this behavior)."
   [reactor app]
   (let [event-chan (protocols/dispatcher-event-chan (:dispatcher reactor))
-        conn (:conn reactor)]
+        conn (:conn reactor)
+        kill-chan (async/chan)]
     (go-loop []
       ;; Should probably use dispatcher api's version of event-chan here...
-      (try
-        (let [event (async/<! event-chan)
-              final-meta (atom nil)]
-          ;(log/debug "Reactor recieved event:" event)
-          (swap!
-            conn
-            (fn [current-db]
-              (try
-                (log/debug "Starting db update")
-                (let [new-db (handle-event! reactor current-db event)]
-                  (reset! final-meta (meta new-db))
-                  (log/info "Final meta in conn swap:" (meta new-db))
-                  ;; Here we dissoc the effects, because we need to not let them stack up
-                  (with-meta new-db (dissoc (meta new-db) ::effects)))
-                ;; We might just want to have our own error channel here, and set an option in the reactor
-                (catch #?(:clj Exception :cljs :default) e
-                  (log/error e "Exception in reactor swap for event: " event)
-                  #?(:clj (.printStackTrace e) :cljs (js/console.log (.-stack e)))
-                  ;(dispatch-error! reactor [::error {:error e :event event}])
-                  current-db))))
-          (when-let [effects (seq (::effects @final-meta))]
-            (doseq [effect effects]
-              ;; Not sure if the db will pass through properly here so that effects execute on the db values
-              ;; immediately following their execution trigger
-              (execute-effect! app (or (:db (meta effect)) @conn) effect))))
-        (catch #?(:cljs :default :clj Exception) e
-          (log/error e "Exception in reactor go loop")
-          #?(:clj (.printStackTrace e) :cljs (js/console.log (.-stack e)))))
-      (recur))))
-        
+      (let [[event port] (async/alts! [kill-chan event-chan] :priority true)
+            final-meta (atom nil)]
+        ;(log/debug "Reactor recieved event with id:" (first event))
+        (try
+          (when-not (= port kill-chan)
+            (swap!
+              conn
+              (fn [current-db]
+                (try
+                  (let [new-db (handle-event! reactor current-db event)]
+                    (reset! final-meta (meta new-db))
+                    ;; Here we dissoc the effects, because we need to not let them stack up
+                    (with-meta new-db (dissoc (meta new-db) ::effects)))
+                  ;; We might just want to have our own error channel here, and set an option in the reactor
+                  (catch #?(:clj Exception :cljs :default) e
+                    (log/error e "Exception in reactor swap for event: " event)
+                    #?(:clj (.printStackTrace e) :cljs (js/console.log (.-stack e)))
+                    ;(dispatch-error! reactor [::error {:error e :event event}])
+                    current-db))))
+            (when-let [effects (seq (::effects @final-meta))]
+              (doseq [effect effects]
+                ;; Not sure if the db will pass through properly here so that effects execute on the db values
+                ;; immediately following their execution trigger
+                (execute-effect! app (or (:db (meta effect)) @conn) effect))))
+          (catch #?(:cljs :default :clj Exception) e
+            (log/error e "Exception in reactor go loop")
+            #?(:clj (.printStackTrace e) :cljs (js/console.log (.-stack e)))))
+        (if (= port kill-chan)
+          (log/info "go-react! process recieved kill-chan signal")
+          (recur))))
+    kill-chan))
 
-(defrecord SimpleReactor [app dispatcher reactor conn]
+
+(defrecord SimpleReactor [app dispatcher reactor conn kill-chan]
   component/Lifecycle
   (start [reactor]
+    (log/info "Starting SimpleReactor Component")
     (try
       (let [reactor (assoc reactor
-                           :conn (or conn (:conn app) (d/create-conn)))]
-        (println "Starting SimpleReactor Component")
-        (go-react! reactor app)
+                           :conn (or conn (:conn app) (d/create-conn)))
+            ;; Start transaction process, and stash kill chan
+            kill-chan (go-react! reactor app)
+            reactor (assoc reactor
+                           :kill-chan kill-chan)] 
         reactor)
       (catch #?(:clj Exception :cljs :default) e
-        (println "Error starting SimpleReactor:" e)
+        (log/error "Error starting SimpleReactor:" e)
         #?(:clj (.printStackTrace e)
            :cljs (js/console.log (.-stack e)))
         reactor)))
   (stop [reactor]
+    (when kill-chan (go (async/>! kill-chan :kill)))
     reactor))
 
 (defn new-simple-reactor

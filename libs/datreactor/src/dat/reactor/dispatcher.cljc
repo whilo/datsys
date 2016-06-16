@@ -42,12 +42,13 @@
   component/Lifecycle
   (start [component]
     ;(utils/log "Starting StrictlyOrderedDispatcher component")
-    (println "Starting StrictlyOrderedDispatcher")
+    (log/info "Starting StrictlyOrderedDispatcher")
     (let [component (assoc component
                            :dispatch-chan (or dispatch-chan (async/chan 100)))]
       component))
   (stop [component]
-    (async/close! dispatch-chan)
+    (log/info "Stopping StrictlyOrderedDispatcher")
+    (when dispatch-chan (async/close! dispatch-chan))
     (assoc component :dispatch-chan nil))
   protocols/PDispatcher
   (dispatch! [component event level]
@@ -72,19 +73,21 @@
   ;; Should make pluggable config options for the chan creation
   component/Lifecycle
   (start [component]
+    (log/info "Starting ErrorPriorityDispatcher")
     (let [component (assoc component
                            :default-chan (or default-chan (async/chan 100))
                            :error-chan (or error-chan (async/chan 100))
                            ;; This should have no buffer so that it doesn't grab a dispatch event and put it in
                            ;; the buffer just before an error event comes in
-                           :event-chan (async/chan))])
+                           :event-chan (async/chan))]
       (go-loop []
         ;; Hmm... this actually doesn't have the semantics we want, since 1 default chan event could get
         ;; through before the event chan is ready to take yet
         (let [[event chan] (async/alts! [error-chan default-chan])]
           (async/>! event-chan event)))
-      component)
+      component))
   (stop [component]
+    (log/info "Stopping ErrorPriorityDispatcher")
     component)
   protocols/PDispatcher
   (dispatch! [component event level]

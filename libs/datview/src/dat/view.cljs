@@ -12,6 +12,7 @@
             [reagent.core :as r]
             [reagent.ratom :as ratom]
             [re-com.core :as re-com]
+            [taoensso.timbre :as log :include-macros true]
             [com.stuartsierra.component :as component]
             [goog.date.Date]
             [cljs-time.core :as cljs-time]
@@ -606,7 +607,7 @@
   component/Lifecycle
   (start [component]
     (try
-      (js/console.log "Starting Datview")
+      (log/info "Starting Datview")
       (let [base-schema (utils/deep-merge dat.sync/base-schema (:datascript/schema config))
             ;; Should try switching to r/atom
             ;conn (or conn (::conn config) (r/atom (d/empty-db base-schema)))
@@ -617,13 +618,13 @@
         (d/transact! conn default-settings)
         ;; Start posh
         (posh/posh! conn)
-        (println "Rendering Datview main component")
+        (log/info "Rendering Datview main component")
         ;; Install with Reagent
         (when-let [root (.getElementById js/document "app")]
           (r/render-component [main component] root))
         component)
       (catch :default e
-        (println "Error starting Datview:" e)
+        (log/error "Error starting Datview:" e)
         (println (.-stack e))
         component)))
   (stop [component]

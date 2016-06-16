@@ -2,7 +2,6 @@
     (:require-macros [cljs.core.async.macros :refer [go-loop]]
                      [reagent.ratom :refer [reaction]])
     (:require [dat.view :as view]
-              [taoensso.timbre :as log :include-macros true]
               [dat.reactor :as reactor]
               [dat.remote]
               [dat.remote.impl.sente :as sente]
@@ -10,10 +9,11 @@
               [dat.sys.client.views :as views]
               [dat.sys.client.events]
               [dat.reactor.dispatcher :as dispatcher]
+              [datascript.core :as d]
+              [taoensso.timbre :as log :include-macros true]
               [reagent.core :as reagent]
               [com.stuartsierra.component :as component]
-              [posh.core :as posh]
-              [datascript.core :as d]))
+              [posh.core :as posh]))
 
 
 ;; # The system & main function
@@ -88,7 +88,13 @@
 
 ;; Just start the component!
 
+;; This is sort of terrible, should really be handling this state in the function and doing the interactive
+;; dev thing in a separate dev file. For now though...
+(defonce system
+  (do
+    (log/info "Creating and starting system")
+    (component/start (new-system))))
+
 (defn ^:export main []
-  (println "Running main")
-  (component/start (new-system)))
+  (log/info "Running main function"))
 
