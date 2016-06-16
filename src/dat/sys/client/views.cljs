@@ -100,5 +100,5 @@
                           ;:where [?e :e/type ?t]
                                  ;[?t :db/ident ?t-ident]])]
               ;; XXX TODO Get this working now...
-              #_[todos-view app]]])
+              [todos-view app]]])
 

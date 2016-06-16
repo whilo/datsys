@@ -24,6 +24,21 @@
             #_[markdown.core :as md]))
 
 
+;; Some wrappers for convenience
+
+(defn dispatch!
+  [app event]
+  (dispatcher/dispatch! (:dispatcher app) event))
+
+(defn dispatch-error!
+  [app event]
+  (dispatcher/dispatch-error! (:dispatcher app) event))
+
+(defn send-tx! [app tx-forms]
+  (dispatch! app [:dat.sync/send-remote-tx tx-forms]))
+
+
+
 ;; ## Metadata view specification structure defaults
 
 (def ^:dynamic box-styles
@@ -53,7 +68,7 @@
          {:padding "5px 12px"}))
 
 
-(def default-mappings (r/atom {}))
+(defonce default-mappings (r/atom {}))
 
 (defn box
   "Prefers children over child"
@@ -96,7 +111,15 @@
     (fn [app]
       ;; Hmm... should we just serialize the structure fully?
       ;; Adds complexity around wanting to have namespaced attribute names for everything
-      (reaction (:dat.view.base-context/value @(posh/pull (:conn app) '[*] [:db/ident ::base-context]))))))
+      (reaction
+        (try
+          (:dat.view.base-context/value
+            @(posh/pull (:conn app) '[*] [:db/ident ::base-context]))
+          ;; Easter egg:
+          ;; A self installing config entity :-) Good pattern?
+          (catch :default e
+            (log/warn "You don't yet have a :dat.view/base-context setting defined. Creating one.")
+            (dispatch! app [:dat.reactor/local-tx [{:db/ident ::base-context}]])))))))
 
 (defn update-base-context!
   [app f & args]
@@ -639,17 +662,5 @@
    (map->Datview {:config config}))
   ([]
    (new-datview {})))
-
-
-(defn dispatch!
-  [app event]
-  (dispatcher/dispatch! (:dispatcher app) event))
-
-(defn dispatch-error!
-  [app event]
-  (dispatcher/dispatch-error! (:dispatcher app) event))
-
-(defn send-tx! [app tx-forms]
-  (dispatch! app [:dat.sync/send-remote-tx tx-forms]))
 
 
