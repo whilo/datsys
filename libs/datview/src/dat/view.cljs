@@ -652,10 +652,4 @@
 (defn send-tx! [app tx-forms]
   (dispatch! app [:dat.sync/send-remote-tx tx-forms]))
 
-(defn render
-  [app]
-  (log/info "Rendering Datview main component")
-  ;; Install with Reagent
-  (when-let [root (.getElementById js/document "app")]
-    (r/render-component [(:main app) app] root)))
 

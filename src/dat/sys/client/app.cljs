@@ -11,7 +11,7 @@
               [dat.reactor.dispatcher :as dispatcher]
               [datascript.core :as d]
               [taoensso.timbre :as log :include-macros true]
-              [reagent.core :as reagent]
+              [reagent.core :as r]
               [com.stuartsierra.component :as component]
               [posh.core :as posh]))
 
@@ -97,5 +97,7 @@
 
 (defn ^:export main []
   (log/info "Running main function")
-  (dat.view/render (:app system)))
+  (when-let [root (.getElementById js/document "app")]
+    (r/render-component [views/main (:app system)] root)))
+
 
