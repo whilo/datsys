@@ -71,8 +71,6 @@
    (resolve-to app db events {})))
 
 
-
-
 ;; TODO Should be able to "register" error subtypes/idents for general purpose error handling
 
 
@@ -80,14 +78,8 @@
 ;; But in general there needs to be a lot of careful thought about how we synchronize state and side effects.
 
 
-
 ;; This thing should be state local to the datsync component, for the sake of running multiple systems,
 ;; methinks. Just don't want to have to bother writing the abstractions right now. Could use help on this TODO
-
-;; Woah; Specter based dispatch system?
-;; Specify a path to the thing you want to dispatch off of.
-;; Can build middleware around things to lense/indirect that for plugins.
-;; For now, hard coded as positional vector.
 
 (defn preserve-meta
   [handler-fn]

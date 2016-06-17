@@ -22,13 +22,12 @@
 ;; If you're interested in tweaking things at a system level, have a look at metasoarous/datprotocols
 
 
-;; ## The simple default system
-
-;; Beep-beedeelee-beep, that's all folks!
+;; ## The default system
 
 (defn new-system []
   (-> (component/system-map
         :remote     (sente/new-sente-remote)
+        ;; This should eventually be optional/defaulted
         :dispatcher (dispatcher/new-strictly-ordered-dispatcher)
         :app        (component/using
                       ;; Should also be able to specify your own conn here, though one will be created for you
