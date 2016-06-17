@@ -1,47 +1,91 @@
 
-![Datsys](catalysis.jpg)
+![Datsys](datsys.png)
 
-Full stack `(+ datsync datview posh datomic datascript #?(:maybe-future [onyx]))` accelerated clj/cljs reactive web development.
-
-
-<br/>
-
-[![Join the chat at https://gitter.im/metasoarous/catalysis](https://badges.gitter.im/metasoarous/catalysis.svg)](https://gitter.im/metasoarous/catalysis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+(Formerly Catalysis)
 
 <br/>
 
+## A web application development framework embracing:
 
-## Introduction
-
-Datsys (formerly Catalysis) is a full stack web application template with:
-
-* [Re-frame](https://github.com/Day8/re-frame)/Samza data flow all the way down
-* full database replication between a central Datomic server and remote DataScript client servers via Datsync (optimistic updates coming soon)
-* composable, data-driven view/query specifications a la [Posh](https://github.com/mpdairy/posh) & [Datview](src/datview/README.md) (see below).
-
-In a sense it is a restricted realization of Nikita Prokopov's [The Web After Tomorrow](http://tonsky.me/blog/the-web-after-tomorrow/) vision.
-While currently limited, it provides a basis on which we can build out this vision, and the patterns it enables.
+* Unidirectional flow of derived data & generally the power of the stream processing model for concurrency and distribution on the server and client (a la [Re-frame](https://github.com/Day8/re-frame), Elm, Redux, Samza)
+* The vision described in the Web After Tomorrow: Scoped Datomic/DataScript database sync as a model for state management and communication
+* The power of the Datom model, datalog and pull-expressions, and the power
+* Stuart Sierra's system component model + protocols & specs for system modularity (Arachne module ready eventually hopefully as well)
 
 See the talk from Clojure/West 2016: [Datalog all the way down](https://www.youtube.com/watch?v=aI0zVzzoK_E)
+
+[![Join the chat at https://gitter.im/metasoarous/datsys](https://badges.gitter.im/metasoarous/datsys.svg)](https://gitter.im/metasoarous/datsys?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+<br/>
+
+## System (Component) architecture
+
+Datsys is built out of the following libraries:
+
+* [Datsync](https://github.com/metasoarous/datsync): Humble basis upon which we may approach the Web After Tomorrow; `Datomic <-> DataScript` sync utilities
+* Datview: Reusable Reagent components for dynamically and flexibly translating data in a Datomic or DataScript database into UI representations and forms, input, and controls.
+* Datreactor: Re-frame style event handling transaction coordination for DataScript connections.
+* Datspec: Specifications, protocols and lib version coordination for Dat`*` systems.
+
+It is all of these things and none of these things.
+It is whichever of them you decide to hook up.
+
+Each of these libraries has been designed around a set of system abstractions, declared as protocols.
+These protocols define an abstraction over the shape of the various system components in the overall architecture.
+The goal is that it be possible to swap implementations in and out depending on what pieces are needed for a particular application.
+(So far this system modularization only extends as far as the client, since that's where most of the code is.
+ However, the server will end up following this pattern as well.)
+
+Let's take a look at `dat.sys.client.app`:
+
+```
+(defn new-system []
+  (-> (component/system-map
+        ;; Remote is our main server connection
+        :remote     (sente/new-sente-remote)
+        ;; For dispatching event streams to the reactor
+        :dispatcher (dispatcher/new-strictly-ordered-dispatcher)
+        ;; Remote is our main server connection
+        :app        (component/using
+                      (dat.view/new-datview)
+                      [:remote :dispatcher])
+        :reactor    (component/using
+                      (reactor/new-simple-reactor)
+                      [:remote :dispatcher :app])
+        :datsync    (component/using
+                      (dat.sync/new-datsync)
+                      [:remote :dispatcher]))))
+```
+
+This describes a system that is syncing a DataScript database on a client with (most likely) a Datomic database on a server, with messages transmitted by a default Sente-based implementation of the Remote abstraction's protocol(s).
+This DataScript database then feeds a view using the datview component `:app`.
+The one core piece in orchestrating all of this is the reactor and the dispatcher.
+Together these manage the flow of events and their updates on the app state, as well as orchestrate side effects.
+
+Since these pieces are modular, you could just use the reactor and dispatcher, but nothing else.
+Or you could use that plus Datsync, but not use Datview.
+Or use Datview, but not Datsync.
+Or use DataScript on the server instead of Datomic.
+Or whatever.
+
+The goal is for this to be flexible enough to describe a lot of different systems within the general span of this set of pieces.
+So if it isn't working for you let us know.
+
+(Aside: Why haven't people been building system components on top of protocols abstracting subsystem boundaries more?)
+
+<br/>
 
 
 ## Datview
 
-Of mention, this template stands as a staging ground for [Datview](src/datview/README.md).
+Of mention in this architecture, is [Datview](https://github.com/metasoarous/datview).
 Datview is a pattern for declaratively and composably specifying how Datomic/DataScript data should translate into Reagent components.
 
 In short, we're building upon the following:
 
 * Maximized potential of Datomic/DataScript for declarative query specifications.
 
-For a detailed introduction to Datview, please see [src/datview/README.md](src/datview/README.md).
-
-
-### Current state
-
-The application is currently loading data from datomic and rendering some simple views based on this data.
-Client -> Server write examples should be coming soon.
-For right now at least, this serves as an example setup of [datsync](https://github.com/metasoarous/datsync) data flow, Datview & Posh
+For a detailed introduction to Datview, please (future readme).
 
 
 ## Usage
@@ -93,6 +137,7 @@ You should see a page that says "Congrats! You've got a datsys app running :-)".
 
 After a few seconds or so, once connections have established and data transacted, you should see a todo list render.
 If not, check out your console.
+(Actually, right now there's a bug and it's possible nothing shows up; You can save a file to get figwheel to trigger an update, but we should have a real fix soon).
 
 <br/>
 
@@ -111,6 +156,7 @@ But you'll surely soon want to start reshaping things into your own project.
 This application uses a system configuration component found in `dat.sys.config`.
 There's a default settings map there you can edit, and all settings are customizable via environment variables or run time arguments.
 Feel free to extend this for your needs to keep all your config logic in one place.
+Or replace with whatever you like here.
 
 
 ### Schema & Seed data
@@ -150,7 +196,7 @@ There's a partial description in the wiki of how to get Datomic Pro set up with 
 
 ### Deploying to Heroku
 
-(Disclaimer: I haven't tried this)
+(Disclaimer: I haven't tried this; copied from Rente.)
 
 To make Datsys run on Heroku, you need to let Leiningen on Heroku use the "package" build task.
 
@@ -173,7 +219,7 @@ There's been talk of folks starting to use this in mobile apps.
 I've you've been using it for mobile apps, please write about it (blog post, tweet, GH wiki page, whatevs) and PR a link here or message me.
 
 
-### More coming soon...
+## More coming soon...
 
 * Datsys as an Arachne plugin?
 
