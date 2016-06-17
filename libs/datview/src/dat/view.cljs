@@ -17,11 +17,24 @@
             [goog.date.Date]
             [cljs-time.core :as cljs-time]
             [cljs.core.async :as async]
+            [cljs.spec :as s]
             [cljs-time.format]
             [cljs-time.coerce]
             [cljs.pprint :as pp]
             [cljs.core.match :as match :refer-macros [match]]
             #_[markdown.core :as md]))
+
+
+
+
+(s/def ::event-id (s/and keyword? namespace))
+
+
+(s/def ::event (s/and vector? (s/cat :event-id  ::event-id
+                                     :event-data (constantly true))))
+                                    
+
+
 
 
 ;; Some wrappers for convenience
