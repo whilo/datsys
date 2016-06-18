@@ -6,6 +6,7 @@
             [dat.reactor.dispatcher :as dispatcher]
             [dat.view.router :as router]
             [dat.view.utils :as utils]
+            [dat.spec.protocols :as protocols]
             [dat.sync.client :as dat.sync]
             [datascript.core :as d]
             [posh.core :as posh]
@@ -17,6 +18,7 @@
             [goog.date.Date]
             [cljs-time.core :as cljs-time]
             [cljs.core.async :as async]
+            [cljs.spec :as s]
             [cljs-time.format]
             [cljs-time.coerce]
             [cljs.pprint :as pp]
@@ -24,18 +26,64 @@
             #_[markdown.core :as md]))
 
 
+
+
+(s/def ::event-id (s/and keyword? namespace))
+
+(s/def ::event (s/and vector? (s/cat :event-id  ::event-id
+                                     :event-data (constantly true))))
+                                    
+(s/def ::conn d/conn?)
+
+(s/def ::dispatcher #(satisfies? protocols/PDispatcher %))
+
+;;todo
+(s/def ::base-context map?)
+
+
+
+;;abstraction over a sente connection
+(s/def ::remote (s/and #(satisfies? protocols/PRemoteSendEvent %)
+                       #(satisfies? protocols/PRemoteEventChan %)))
+
+
+(s/def ::app (s/keys :req-un [::conn ::dispatcher ::base-context]
+                     :opt-un [::remote]))
+
+
+
 ;; Some wrappers for convenience
 
 (defn dispatch!
-  [app event]
-  (dispatcher/dispatch! (:dispatcher app) event))
+  ([app event]
+   (dispatcher/dispatch! (:dispatcher app) event))
+  ([app event level]
+   (dispatcher/dispatch! (:dispatcher app) event level)))
+
+
+(s/def ::dispatch-args (s/cat :app ::app  :event ::event :level (s/? keyword?)))
+
+
+(s/fdef dispatch :args ::dispatch-args)
+
+
 
 (defn dispatch-error!
   [app event]
   (dispatcher/dispatch-error! (:dispatcher app) event))
 
+
+(s/fdef dispatch-error! :args (s/cat :app ::app :event ::event))
+
+
+
 (defn send-tx! [app tx-forms]
   (dispatch! app [:dat.sync.client/send-remote-tx tx-forms]))
+
+
+
+
+
 
 
 
