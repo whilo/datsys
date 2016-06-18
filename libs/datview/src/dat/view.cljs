@@ -68,8 +68,6 @@
          {:padding "5px 12px"}))
 
 
-(defonce default-mappings (r/atom {}))
-
 (defn box
   "Prefers children over child"
   [{:as args :keys [style children child]}]
@@ -105,6 +103,8 @@
 
 ;; Should probably move all of these out to reactions or some such, except for anything that's considered public
 
+(defonce default-base-context (r/atom {}))
+
 (def base-context
   ;; Not sure if this memoize will do what I'm hoping it does (:staying-alive true, effectively)
   (memoize
@@ -119,7 +119,8 @@
           ;; A self installing config entity :-) Good pattern?
           (catch :default e
             (log/warn "You don't yet have a :dat.view/base-context setting defined. Creating one.")
-            (dispatch! app [:dat.reactor/local-tx [{:db/ident ::base-context}]])))))))
+            (dispatch! app [:dat.reactor/local-tx [{:db/ident ::base-context
+                                                    :dat.view.base-context/value default-base-context}]])))))))
 
 (defn update-base-context!
   [app f & args]
@@ -210,9 +211,9 @@
     (fn component-context*
       ([app]
        (reaction
-         ;; Don't need this arity if we drop the distinction between base-context and default-mappings
+         ;; Don't need this arity if we drop the distinction between base-context and default-base-context
+         @default-base-context
          (utils/deep-merge
-           @default-mappings
            @(base-context app))))
       ([app component-id]
        (component-context* app component-id {}))
@@ -545,11 +546,12 @@
               (sort values))))
 
 
+
 ;; Setting default context; Comes in precedence even before the DS context
 ;; But should this be config technically?
 ;; Note: There are function values in here, so some of this would not be writable to Datomic; But at least some of it could be...)
-;(reset! default-mappings
-(swap! default-mappings
+;; This stuff should maybe be part of a transaction
+(swap! default-base-context
   utils/deep-merge
   ;; Top level just says that this is our configuration? Or is that not necessary?
   {::base-config
@@ -602,7 +604,7 @@
    ;; Specifications merged in for any value type
    ::value-type-config {}
    ::attr-config {:db/id {:dat.view.forms/field-for {:attribute/hidden? true
-                                                           :dom/attrs {:style {:display "none"}}}}}})
+                                                     :dom/attrs {:style {:display "none"}}}}}})
    ;; Will add the ability to add mappings at the entity level; And perhaps specifically at the type level.
    ;; Use the patterns of OO/types with pure data; Dynamic
 
@@ -651,14 +653,16 @@
            :reactor nil
            :conn nil)))
 
-
 ;; Should have a way of telling components what config options they need
 (defn new-datview
   "Creates a new instance of datview, to be passed around in your application code as either
   `app` or `datview` (the latter, following from typical System Component naming conventions,
   and the fact that this will be a Datview object)"
-  ([{:as config :keys [datascript/schema ;; Base schema
-                       dat.view/conn]}] ;; If you want to pass in your own conn
+  ([{:as config
+     :keys [datascript/schema ;; Base schema
+            dat.view/conn
+            dat.view/base-context]
+     :or [dat.view/base-context default-base-context]}] ;; Need to actually plug this in as an atom
    (map->Datview {:config config}))
   ([]
    (new-datview {})))

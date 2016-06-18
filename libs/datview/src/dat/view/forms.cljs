@@ -196,15 +196,15 @@
        ;; Need to assoc in the root node context here
        (let [sub-expr (some #(get % attr-ident) pull-expr) ;; XXX This may not handle a ref not in {}
              ;; Need to handle situation of a recur point ('...) as a specification; Should be the context pull root, or the passed in expr, if needed
-             sub-expr (if (= sub-expr '...) (or (:datview/root-pull-expr context) pull-expr) sub-expr)
-             context (if (:datview/root-pull-expr context)
+             sub-expr (if (= sub-expr '...) (or (:dat.view/root-pull-expr context) pull-expr) sub-expr)
+             context (if (:dat.view/root-pull-expr context)
                        context
-                       (assoc context :datview/root-pull-expr pull-expr))]
+                       (assoc context :dat.view/root-pull-expr pull-expr))]
          ;(when-not (= (:db/cardinality attr) :db.cardinality/many)
                         ;;(nil? value))
          [pull-form app context sub-expr value])
        ;; This is where we can insert something that catches certain things and handles them separately, depending on context
-       ;[{:db/valueType :db.type/ref} {:datview.level/attr {?}}]
+       ;[{:db/valueType :db.type/ref} {:dat.view.level/attr {?}}]
        ;[pull-form app context (get pull-expr value)]
        ;; Non component entity; Do dropdown select...
        [{:db/valueType :db.type/ref} _]
@@ -328,7 +328,7 @@
   [app context pull-expr eid attr-ident value]
   ;; So first we get attr-signature and config
   (let [attr-sig (datview/attribute-signature-reaction app attr-ident)
-        config (datview/component-context app ::field-for {:datview/locals context :datview/attr attr-ident})
+        config (datview/component-context app ::field-for {:dat.view/locals context :dat.view/attr attr-ident})
         ;; Should move all this local state in conn db if possible... XXX
         activate-type-selector? (r/atom false)
         selected-type (r/atom nil)
@@ -351,7 +351,7 @@
           [:div (:dom/attrs @config)
            ;[datview/debug "type-idents:" type-idents]
            ;[datview/debug "attr-sig:" @attr-sig]
-           ;[:div (get-in @config [:datview.level/attr :datview/controls])]
+           ;[:div (get-in @config [:dat.view.level/attr :dat.view/controls])]
            [field-for-skeleton app attr-ident 
              ;; Right now these can't "move" because they don't have keys XXX Should fix with another component
              ;; nesting...
@@ -467,7 +467,7 @@
          [pull-form app context pull-expr current-data]
          [loading-notification "Please wait; loading data."])
        ;; The meat of the logic
-       (let [context @(datview/component-context app ::pull-form {:datview/locals context})]
+       (let [context @(datview/component-context app ::pull-form {:dat.view/locals context})]
          [:div (:dom/attrs context)
           ;; Can you doubly nest for loops like this? XXX WARN
           (for [attr-ident (pull-expr-attributes app pull-expr)]
@@ -496,16 +496,16 @@
   ;[app pull-expr eid])
 
 
-(swap! datview/default-mappings
+(swap! datview/default-base-context
   utils/deep-merge
   ;; Top level just says that this is our configuration? Or is that not necessary?
-  {:datview/base-config
+  {:dat.view/base-config
    {::pull-form
     {:dom/attrs {:style datview/bordered-box-style}}}
    ;; Specifications merged in for any config
-   :datview/card-config {}
+   :dat.view/card-config {}
    ;; Specifications merged in for any value type
-   :datview/value-type-config {}
-   :datview/attr-config {}})
+   :dat.view/value-type-config {}
+   :dat.view/attr-config {}})
 
 
