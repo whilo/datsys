@@ -119,8 +119,7 @@
           ;; A self installing config entity :-) Good pattern?
           (catch :default e
             (log/warn "You don't yet have a :dat.view/base-context setting defined. Creating one.")
-            (dispatch! app [:dat.reactor/local-tx [{:db/ident ::base-context
-                                                    :dat.view.base-context/value default-base-context}]])))))))
+            (dispatch! app [:dat.reactor/local-tx [{:db/ident ::base-context}]])))))))
 
 (defn update-base-context!
   [app f & args]
