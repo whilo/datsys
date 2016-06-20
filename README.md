@@ -73,19 +73,10 @@ So if it isn't working for you let us know.
 
 (Aside: Why haven't people been building system components on top of protocols abstracting subsystem boundaries more?)
 
+Of course, as the name might suggest, we'll also be building specs into this project.
+So that'll be another nice layer of expressiveness open to us for describing subsystem boundaries.
+
 <br/>
-
-
-## Datview
-
-Of mention in this architecture, is [Datview](https://github.com/metasoarous/datview).
-Datview is a pattern for declaratively and composably specifying how Datomic/DataScript data should translate into Reagent components.
-
-In short, we're building upon the following:
-
-* Maximized potential of Datomic/DataScript for declarative query specifications.
-
-For a detailed introduction to Datview, please (future readme).
 
 
 ## Usage
@@ -136,7 +127,7 @@ Next, point browser to:
 You should see a page that says "Congrats! You've got a datsys app running :-)".
 
 After a few seconds or so, once connections have established and data transacted, you should see a todo list render.
-If not, check out your console.
+If not, check your console.
 (Actually, right now there's a bug and it's possible nothing shows up; You can save a file to get figwheel to trigger an update, but we should have a real fix soon).
 
 <br/>
@@ -147,16 +138,7 @@ If not, check out your console.
 
 Yay!
 If you've gotten through the Usage section, you have a running system with some data loaded and ready to tinker with!
-At this point, you might want to tinker around with the Todo app a little bit to feel out how things work.
-But you'll surely soon want to start reshaping things into your own project.
-
-
-### Config
-
-This application uses a system configuration component found in `dat.sys.config`.
-There's a default settings map there you can edit, and all settings are customizable via environment variables or run time arguments.
-Feel free to extend this for your needs to keep all your config logic in one place.
-Or replace with whatever you like here.
+At this point, you might want to look at the Todo app a little bit to feel out how things work.
 
 
 ### Schema & Seed data
@@ -170,22 +152,46 @@ If you want to see how these migrations are hooked up, take a look at the `dat.s
 There's also some seed data in `resources/test-data.edn` for you to play with.
 
 
-### Front end components
+### Front end
 
-The main namespace for the client is `dat.sys.client.app`.
-This is where everything hooks together.
-We may eventually set up Stuart Sierra's component here as well, but for now, think of this as your system bootstrap process.
+Views are in `dat.sys.client.views`, and you'll note that the `main` function there is hooked up at the end of the `dat.sys.client.app` namespace (where we created our system).
 
-Views are in `dat.sys.client.views`, and you'll note that the `main` function there is hooked up at the end of the `app` namespace.
-This is where you write your view code.
+The view code is written in a combination of [Reagent](https://github.com/reagent-project/reagent) and [Posh](https://github.com/mpdairy/posh) within the context of the [Datview](https://github.com/metasoarous/datview) UI toolkit.
+More or less, Datview is a set of helper functions for translating queries and/or query data into hiccup (and thus DOM).
+These functions vary in granularity (`pull-view > attribute-view > value-view`), letting you compose things as you see fit.
+Additionally, there is a notion of rendering data within an abstract _context_ with instructs a particular Datview component function how to do it's job.
+As such, the semantics of a particular context map depend on the function in which it's being used.
+And actually, under the hood, these will all just be mapping to some general purpose function: `(transform datview-app context data)`.
+This itself, in turn, may call `(transform datview-app sub-context sub-data)`, recursively.
+The context should optimally be DataScript data, so that different views can just be different base context values created from within the database.
+The `transform` function then can just be a multimethod on the structure of this data.
+Or if you wanted to, you could use pattern matching.
+(For more information please see the Datview README.)
 
-This view code is written in a combination of [Reagent](https://github.com/reagent-project/reagent) and Posh, upon which [Datview](src/datview/README.md) is based, and there's a lot to learn for each of these.
-The long and short of it though is that posh lets us write Reagent reactions as DataScripts queries (`q`, `pull`, `pull-many`, `filter-pull`, `filter-q`, etc.).
-Thus, we obtain the re-frame "reactive materialized views" architecture with declarative query descriptions, al. a DataScript databases.
+So aside from constructing context specifications (and wiring/composing them together), you'll also have to handle events and trigger side effects.
+To read more about this, see [Datreactor](https://github.com/metasoarous/datreactor).
+If you are using [Datsync](https://github.com/metasoarous/datsync), there's a Datremote abstraction you can use for coordinating messages with the synchronization channels.
+More information about hooking those thing up can be found in their respective repositories, and see whatever code samples are provided with this project template.
 
-Datview (mentioned above) is merely a pattern for using query metadata to instruct the translation of DataScript into DOM via these functions.
-We'll be building out these patterns more, and making them in to a library.
-But for now, it's something to see in motion.
+### Other stuff
+
+Reactions... etc
+
+
+
+<br/>
+
+
+
+## Environment and Deployment
+
+### Config
+
+This application uses a system configuration component found in `dat.sys.config`.
+There's a default settings map there you can edit, and all settings are customizable via environment variables or run time arguments.
+Feel free to extend this for your needs to keep all your config logic in one place.
+Or replace with whatever you like here.
+We may move to a proper library for doing this.
 
 
 ### Datomic Pro
