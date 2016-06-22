@@ -69,6 +69,7 @@
      :margin "20px 5px 5px"
      :children [[:h2 "Todos"]
                 [:p "Below are forms and views for each todo item in the database:"]
+                [:p "(Unfortunately, these probably won't render properly right away. You have to save a file to get figwheel to force an update. Even then, the styles aren't applying properly. But we're on the trail and should have a fix soon.)"]
                 (for [todo todo-eids]
                   ^{:key todo}
                   [:div {:style {:margin "20px 5px"}}
