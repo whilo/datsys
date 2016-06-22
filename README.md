@@ -38,7 +38,7 @@ The goal is that it be possible to swap implementations in and out depending on 
 
 Let's take a look at `dat.sys.client.app`:
 
-```
+```clj
 (defn new-system []
   (-> (component/system-map
         ;; Remote is our main server connection
@@ -105,7 +105,7 @@ lein repl
 
 Wait for the prompt, then type
 
-```
+```clj
 (run)
 ```
 
@@ -177,9 +177,55 @@ More information about hooking those thing up can be found in their respective r
 
 Reactions... etc
 
+<br/>
 
+
+
+## Contributing to Datsys (and other Dat\* projects)
+
+We would love your help!
+Anything from filing bug reports, to documentation, to hacking on code is infinitely appreciated.
+For docs, feel free to contribute directly to the wiki.
+For code or code-comment/README docs, feel free to submit a pull-request.
+Before you start working on anything big though please get in touch with us about it using either a github issue, or by reaching out to us on the Gitter channel.
+
+### Dealing with multiple repos
+
+If you're contributing code to one of the other Dat projects, you'll likely want to use the [Checkout dependencies](https://github.com/technomancy/leiningen/blob/master/doc/TUTORIAL.md#checkout-dependencies) feature of Leiningen.
+In short, clone whatever projects you're working on into a `checkouts` dir in `datsys` (note: linking will not work if you want client reloading via Figwheel).
+Be aware of the caveats listed in the link above.
+
+### Roadmap
+
+There's obviously also a ton smaller things that need to be done and fixed, and you can take a look at project issues for those.
+But the following is a very big picture overview of some of the more major things we'd like to accomplish with the system.
+
+* Datsync:
+    * Security and scoping filters (+ posh query exports for automated scoping)
+    * Offline availability
+    * Entity validations
+    * Onyx distribution
+    * Long term:
+        * P2P (non-centralized) distribution/sharing (perhaps via CRDTs or CVDCS)
+        * Log history plugins
+* Datview:
+    * Rewrite in terms more general `(transform app context data)` context-based translation function, with multimethod dispatching for extensible rendering.
+    * Finish setting up default context hooks/implementations.
+    * Build out more default control widgets and clean way of grouping them.
+    * Documentation
+    * Package together some example widgets (as context multimethod implementations).
+* Datspec
+    * Add Clojure spec hotness to abstract architectural descriptions :-) (and generally spec rest of project(s) as well)
+* Datsys:
+    * Documentation
+    * More example apps
+    * System Componentization of server, similar to what we've done for client:
+      Going to be a little more challenging here since the flow of data is a bit more complicated, and scalability more of a concern.
+      But we should still be able to come up with some nice abstractions so folks can switch out different implementations.
+    * Generative testing (based on specs)
 
 <br/>
+
 
 
 
@@ -193,12 +239,10 @@ Feel free to extend this for your needs to keep all your config logic in one pla
 Or replace with whatever you like here.
 We may move to a proper library for doing this.
 
-
 ### Datomic Pro
 
 Assuming you want to use the free version of Datomic to test things out, things _should_ run out of the box here.
 There's a partial description in the wiki of how to get Datomic Pro set up with this application, should you need it (as well as some commented code in the project.clj).
-
 
 ### Deploying to Heroku
 
@@ -218,16 +262,15 @@ Everything is nicely wrapped in shiny purple foil if you simply click this butto
 
 Enjoy!
 
-
 ### Mobile App?
 
 There's been talk of folks starting to use this in mobile apps.
 I've you've been using it for mobile apps, please write about it (blog post, tweet, GH wiki page, whatevs) and PR a link here or message me.
 
-
 ## More coming soon...
 
 * Datsys as an Arachne plugin?
+
 
 
 ## Contributions
