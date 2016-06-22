@@ -1,19 +1,19 @@
 (ns dat.sys.client.app
-    (:require-macros [cljs.core.async.macros :refer [go-loop]]
-                     [reagent.ratom :refer [reaction]])
-    (:require [dat.view]
-              [dat.reactor :as reactor]
-              [dat.remote]
-              [dat.remote.impl.sente :as sente]
-              [dat.sync.client :as dat.sync]
-              [dat.sys.client.views :as views]
-              [dat.sys.client.events]
-              [dat.reactor.dispatcher :as dispatcher]
-              [datascript.core :as d]
-              [taoensso.timbre :as log :include-macros true]
-              [reagent.core :as r]
-              [com.stuartsierra.component :as component]
-              [posh.core :as posh]))
+  (:require-macros [cljs.core.async.macros :refer [go-loop]]
+                   [reagent.ratom :refer [reaction]])
+  (:require [dat.view]
+            [dat.reactor :as reactor]
+            [dat.remote]
+            [dat.remote.impl.sente :as sente]
+            [dat.sync.client :as dat.sync]
+            [dat.sys.client.views :as views]
+            [dat.sys.client.events]
+            [dat.reactor.dispatcher :as dispatcher]
+            [datascript.core :as d]
+            [taoensso.timbre :as log :include-macros true]
+            [reagent.core :as r]
+            [com.stuartsierra.component :as component]
+            [posh.core :as posh]))
 
 
 ;; # The system & main function
