@@ -2,13 +2,9 @@
   "# Views"
   (:require [dat.view]
             [dat.view.forms :as forms]
-            [dat.view.utils :as utils]
             [posh.core :as posh]
             [reagent.core :as r]
-            [re-com.core :as re-com]
-            [re-frame.core :as re-frame] 
-            [clojure.string :as string]
-            [datascript.core :as d]))
+            [re-com.core :as re-com]))
 
 
 ;; The core views namespace...

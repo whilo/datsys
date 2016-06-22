@@ -1,4 +1,4 @@
-(ns catalysis.start
+(ns dat.sys.start
   (:require [figwheel.client :as fw]
             [dat.sys.client.app :as app]
             [dat.view]))
