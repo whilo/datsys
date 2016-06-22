@@ -53,22 +53,16 @@
   ;                                [:env/datomic_username]
   ;                                 :password
   ;                                 [:env/datomic_password]}}
-  :source-paths ["src"
-                 ;; Can uncomment to test development of datsync or datview (must also check out said projects
-                 ;; in libs for this to work)
-                 "libs/datsync/src"
-                 "libs/datview/src"
-                 "libs/datreactor/src"
-                 "libs/datspec/src"]
+  :source-paths ["src"]
   :resource-paths ["resources" "resources-index/prod"]
   :target-path "target/%s"
   :main ^:skip-aot dat.sys.run
   :repl-options {:init-ns user}
   :cljsbuild {:builds {:client {:source-paths ["src/dat/sys/client"
-                                               "libs/datview/src"
-                                               "libs/datsync/src"
-                                               "libs/datreactor/src"
-                                               "libs/datspec/src"]
+                                               "checkouts/datview/src"
+                                               "checkouts/datsync/src"
+                                               "checkouts/datreactor/src"
+                                               "checkouts/datspec/src"]
                                 :compiler {:output-to "resources/public/js/app.js"
                                            :output-dir "dev-resources/public/js/out"}}}}
                        ;:devcards {:source-paths ["src"]
