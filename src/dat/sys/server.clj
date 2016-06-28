@@ -3,13 +3,13 @@
             [com.stuartsierra.component :as component]
             [org.httpkit.server :refer (run-server)]))
 
-(defrecord HttpServer [config ring-routes server-stop]
+(defrecord HttpServer [config ring-handler server-stop]
   component/Lifecycle
   (start [component]
     (if server-stop
       component
       (let [component (component/stop component)
-            server-stop (run-server (:ring-handler ring-routes) {:port (-> config :server :port)})]
+            server-stop (run-server (:handler ring-handler) {:port (-> config :server :port)})]
         (log/info "HTTP server started")
         (assoc component :server-stop server-stop))))
   (stop [component]

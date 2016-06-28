@@ -1,16 +1,16 @@
-(ns dat.sys.figwheel-server
+(ns dat.sys.dev.figwheel-server
   (:require [com.stuartsierra.component :as component]
             [figwheel-sidecar.system :as figwheel]
             [dat.sys.shared.utils :refer [deep-merge]]
             ))
 
-(defrecord FigwheelServer [config ring-routes figwheel-system]
+(defrecord FigwheelServer [config ring-handler figwheel-system]
   component/Lifecycle
   (start [component]
          (let [port (-> config :server :port)
                fig-config (deep-merge (figwheel/fetch-config)
                                       {:figwheel-options (merge
-                                                           {:ring-handler (:ring-handler ring-routes)}
+                                                           {:ring-handler (:handler ring-handler)}
 
                                                            ;; comment out to allow figwheel config to determine the port instead of datsys config:
                                                            (when port {:server-port port})

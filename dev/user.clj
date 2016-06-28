@@ -7,14 +7,15 @@
     [com.stuartsierra.component :as component]
     [clojure.tools.namespace.repl :refer [refresh refresh-all]]
     [dat.sys.system :as system]
-    [dat.sys.figwheel-server :as fserver]))
+    [clojure.tools.logging :as log]
+    [dat.sys.dev.figwheel-server :as fserver]))
 
 (def system nil)
 
 (defn init
   ([config-overrides]
    (alter-var-root #'system (fn [_] (assoc (system/create-system config-overrides)
-                                      :http-server (component/using (fserver/new-figwheel-server) [:datomic :config :ring-routes])))))
+                                      :http-server (component/using (fserver/new-figwheel-server) [:datomic :config :ring-handler])))))
   ([] (init {})))
 
 (defn start []
@@ -39,7 +40,7 @@
 (defn browser-repl []
   (if system
     (fserver/browser-repl (:http-server system))
-    "The system must be running. Use (run)."))
+    (log/error "The system must be running to open a browser-repl. Use (run) first.")))
 
 (comment
   ;; Run a customized system XXX

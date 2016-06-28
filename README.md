@@ -193,6 +193,8 @@ If you're contributing code to one of the other Dat projects, you'll likely want
 In short, clone whatever projects you're working on into a `checkouts` dir in `datsys` (note: linking will not work if you want client reloading via Figwheel).
 Be aware of the caveats listed in the link above.
 
+Then uncomment the checkout in `:source-paths` in `project.clj`.
+
 ### Roadmap
 
 There's obviously also a ton smaller things that need to be done and fixed, and you can take a look at project issues for those.

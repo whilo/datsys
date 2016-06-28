@@ -64,14 +64,16 @@
               {:client
                {:source-paths ["src/dat/sys/client"
                                "dev"
+
+                               ;; If you want to develop another dat* lib download the lib into checkouts as described in the README and uncomment:
                                ;;"checkouts/datview/src"
                                ;;"checkouts/datsync/src"
                                ;;"checkouts/datreactor/src"
                                ;;"checkouts/datspec/src"
                                ]
-                :figwheel {:on-jsload "dat.sys.start/on-js-reload"}
+                :figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}
 
-                :compiler {:main dat.sys.start
+                :compiler {:main dat.sys.dev.start
                            :asset-path "js/compiled/out"
                            :output-to "resources/public/js/compiled/app.js"
                            :output-dir "resources/public/js/compiled/out"
