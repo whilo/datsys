@@ -9,5 +9,5 @@
   ;; TODO Eventually hook command line args into config-overwrides here so they flow through system. Room for
   ;; lib work...
   (component/start (create-system))
-  (log/info "catalysis started"))
+  (log/info "datsys started"))
 
