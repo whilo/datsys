@@ -12,7 +12,6 @@ pom.xml.asc
 /resources/public/js/
 /dev-resources
 profiles.clj
-figwheel_server.log
 config/local/
 data
 # So you can install datomic here

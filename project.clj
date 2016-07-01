@@ -53,17 +53,33 @@
   ;                                 :password
   ;                                 [:env/datomic_password]}}
   :source-paths ["src"]
-  :resource-paths ["resources" "resources-index/prod"]
+  :resource-paths ["resources"]
   :target-path "target/%s"
+
+  ;; Should be doing https://github.com/cemerick/clojurescript.test/issues/97 instead, but I can't figure it out so we turn off clean protection instead
+  :clean-targets ^{:protect false} [:target-path :compile-path "resources/public/js/compiled"]
+
   :main ^:skip-aot dat.sys.run
-  :repl-options {:init-ns user}
-  :cljsbuild {:builds {:client {:source-paths ["src/dat/sys/client"
-                                               "checkouts/datview/src"
-                                               "checkouts/datsync/src"
-                                               "checkouts/datreactor/src"
-                                               "checkouts/datspec/src"]
-                                :compiler {:output-to "resources/public/js/app.js"
-                                           :output-dir "dev-resources/public/js/out"}}}}
+  :cljsbuild {:builds
+              {:client
+               {:source-paths ["src/dat/sys/client"
+                               "dev"
+
+                               ;; If you want to develop another dat* lib download the lib into checkouts as described in the README and uncomment:
+                               ;;"checkouts/datview/src"
+                               ;;"checkouts/datsync/src"
+                               ;;"checkouts/datreactor/src"
+                               ;;"checkouts/datspec/src"
+                               ]
+                :figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}
+
+                :compiler {:main dat.sys.dev.start
+                           :asset-path "js/compiled/out"
+                           :output-to "resources/public/js/compiled/app.js"
+                           :output-dir "resources/public/js/compiled/out"
+                           :optimizations :none
+                           :source-map-timestamp true ;; helps prevent browser caching from interferring with interactive dev
+                           }}}}
                        ;:devcards {:source-paths ["src"]
                                   ;:figwheel {:devcards true}  ;; <- note this
                                   ;:compiler {:main    "dat.sys.client.cards"
@@ -71,13 +87,44 @@
                                              ;:output-to  "resources/public/js/datsys_devcards.js"
                                              ;:output-dir "resources/public/js/devcards_out"
                                              ;:source-map-timestamp true}}}}
-  :figwheel {:server-port 3448
-             :repl true}
+
+  ;; The figwheel config is adapted from https://github.com/plexus/chestnut
+
+  ;; nREPL by default starts in the :main namespace, we want to start in `user`
+  ;; because that's where our development helper functions like (run) and
+  ;; (browser-repl) live.
+  :repl-options {:init-ns user}
+
+  ;; When running figwheel from nREPL, figwheel will read this configuration
+  ;; stanza, but it will read it without passing through leiningen's profile
+  ;; merging. So don't put a :figwheel section under the :dev profile, it will
+  ;; not be picked up, instead configure figwheel here on the top level.
+
+  :figwheel {;; :server-port 3449                ;; default. overwritten by datsys config anyways
+             ;; :server-ip "127.0.0.1"           ;; default
+             :css-dirs ["resources/public/css"]  ;; watch and update CSS
+
+             ;; To be able to open files in your editor from the heads up display
+             ;; you will need to put a script on your path.
+             ;; that script will have to take a file path and a line number
+             ;; ie. in  ~/bin/myfile-opener
+             ;; #! /bin/sh
+             ;; emacsclient -n +$2 $1
+             ;;
+             ;; :open-file-command "myfile-opener"
+
+             :server-logfile "logs/figwheel.log"
+              }
+
   :profiles {:dev-config {}
              :dev [:dev-config
                    {:dependencies [[alembic "0.3.2"]
                                    [figwheel "0.5.4-3"]
+                                   [figwheel-sidecar "0.5.3-2"]
+                                   [com.cemerick/piggieback "0.2.1"]
+                                   [org.clojure/tools.nrepl "0.2.12"]
                                    [devcards "0.2.1"]]
+                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
                     :plugins [[lein-figwheel "0.5.4-3" :exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]]
                               [com.palletops/lein-shorthand "0.4.0"]
                               [lein-environ "1.0.1"]]
@@ -90,19 +137,23 @@
                     :source-paths ["dev"]
                     ;; libs/datsync/resources is important here; It's lib code need access to it's resources
                     ;; dir in dev
-                    :resource-paths ^:replace ["resources" "libs/datsync/resources" "dev-resources" "resources-index/dev"]
-                    :cljsbuild
-                    {:builds
-                     {:client {:source-paths ["dev"]
-                               :compiler
-                               {:optimizations :none
-                                :source-map true}}}}}]
+                    :resource-paths ^:replace ["resources" "libs/datsync/resources"]}]
              :prod {:cljsbuild
                     {:builds
-                     {:client {:compiler
-                               {:optimizations :advanced
-                                :pretty-print false}}}}}}
+                     {:client {:source-paths ^:replace ["src/dat/sys/client"]
+                               :compiler {:main dat.sys.client.app
+                                          ;;:source-map false
+                                          :optimizations :advanced
+                                          :pretty-print false
+                                          }}}}}
+             :uberjar [:prod
+                       {:omit-source true
+                        :aot :all}]
+             }
   :aliases {"package"
             ["with-profile" "prod" "do"
-             "clean" ["cljsbuild" "once"]]})
+             "clean" ["cljsbuild" "once"]]
+            "run-prod"
+            ["with-profile" "prod" "do"
+             "package" "run"]})
 

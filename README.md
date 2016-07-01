@@ -83,22 +83,6 @@ So that'll be another nice layer of expressiveness open to us for describing sub
 
 To get running, clone, and cd into the project directory (`datsys`).
 
-
-### Figwheel
-
-Next get figwheel up and running for hot cljs reloading:
-
-```
-lein figwheel
-```
-
-Wait for figwheel to finish and notify browser of changed files!
-
-
-### Server
-
-Then in another terminal tab (tmux pane, whatevs...):
-
 ```
 lein repl
 ```
@@ -118,6 +102,20 @@ Unfortunately, not sure yet how to get the `reset` function to also accept the `
 
 And maybe eventually we'll also helpers for running multiple instances at once to test different things...
 But one step at a time :-)
+
+### Browser Repl
+
+You can get the browser-connected figwheel repl with the command:
+
+```clj
+(browser-repl)
+```
+
+And return to the server repl with:
+
+```clj
+:cljs/quit
+```
 
 
 ### Open Browser
@@ -194,6 +192,8 @@ Before you start working on anything big though please get in touch with us abou
 If you're contributing code to one of the other Dat projects, you'll likely want to use the [Checkout dependencies](https://github.com/technomancy/leiningen/blob/master/doc/TUTORIAL.md#checkout-dependencies) feature of Leiningen.
 In short, clone whatever projects you're working on into a `checkouts` dir in `datsys` (note: linking will not work if you want client reloading via Figwheel).
 Be aware of the caveats listed in the link above.
+
+Then uncomment the checkout in `:source-paths` in `project.clj`.
 
 ### Roadmap
 

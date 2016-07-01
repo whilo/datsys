@@ -5,9 +5,11 @@
             [dat.sys.config :as config]
             [dat.sys.datomic :as datomic]
             [dat.sys.server :as server]
+            [dat.sys.shared.routes :as routes]
+            [dat.sys.ring-handler :as handler]
             [dat.sys.app :as app]
             [dat.sys.import :as import]))
-            
+
 
 (defn create-system
   ([config-overrides]
@@ -16,7 +18,9 @@
      :datomic (component/using (datomic/create-datomic) [:config])
      :importer (component/using (import/new-importer) [:config :datomic])
      :ws-connection (component/using (ws/new-ws-connection) [:config])
-     :http-server (component/using (server/new-http-server) [:datomic :config :ws-connection])
+     :routes (component/using (routes/new-routes) [:config])
+     :ring-handler (component/using (handler/new-ring-handler) [:config :routes :ws-connection])
+     :http-server (component/using (server/new-http-server) [:datomic :config :ring-handler]) ;; user.clj depends on :http-server
      :app (component/using (app/new-app) [:config :ws-connection :datomic])))
   ([] (create-system {})))
 
