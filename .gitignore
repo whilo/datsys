@@ -10,7 +10,6 @@ pom.xml.asc
 /.nrepl-port
 /resources/public/js/*.js
 /resources/public/js/
-/dev-resources
 profiles.clj
 config/local/
 data
