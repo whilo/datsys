@@ -83,22 +83,6 @@ So that'll be another nice layer of expressiveness open to us for describing sub
 
 To get running, clone, and cd into the project directory (`datsys`).
 
-
-### Figwheel
-
-Next get figwheel up and running for hot cljs reloading:
-
-```
-lein figwheel
-```
-
-Wait for figwheel to finish and notify browser of changed files!
-
-
-### Server
-
-Then in another terminal tab (tmux pane, whatevs...):
-
 ```
 lein repl
 ```
@@ -118,6 +102,20 @@ Unfortunately, not sure yet how to get the `reset` function to also accept the `
 
 And maybe eventually we'll also helpers for running multiple instances at once to test different things...
 But one step at a time :-)
+
+### Browser Repl
+
+You can get the browser-connected figwheel repl with the command:
+
+```clj
+(browser-repl)
+```
+
+And return to the server repl with:
+
+```clj
+:cljs/quit
+```
 
 
 ### Open Browser

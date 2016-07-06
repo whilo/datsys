@@ -15,7 +15,6 @@
             [com.stuartsierra.component :as component]
             [posh.core :as posh]))
 
-
 ;; # The system & main function
 
 ;; This is where everything actually ties together and starts.
@@ -68,7 +67,7 @@
 ;; As long as our abstractions aren't leaking for you...
 ;; (Tell us if they do...)
 
-;; Here's a quick example of what some 
+;; Here's a quick example of what some
 
 ;;     (defn new-system []
 ;;       (-> (component/system-map
@@ -99,4 +98,7 @@
   (when-let [root (.getElementById js/document "app")]
     (r/render-component [views/main (:app system)] root)))
 
+
+;; Only gets called from a production build. See dev/start.cljs during development
+(main)
 

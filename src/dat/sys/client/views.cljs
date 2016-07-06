@@ -35,7 +35,7 @@
     :e/tags [:db/id :e/name :e/description]
     :todo/time-entries time-entry}])
 
-;; We could call (dat.view/pull-view conn base-todo-view eid) and get a hiccup view of the 
+;; We could call (dat.view/pull-view conn base-todo-view eid) and get a hiccup view of the
 
 ;; We should just be able to use recursion depth specifications and ...; Posh doesn't allow, so this is just a
 ;; hack for now...
