@@ -19,7 +19,7 @@
 ;; # The system & main function
 
 ;; This is where everything actually ties together and starts.
-;; If you're interested in tweaking things at a system level, have a look at metasoarous/datprotocols
+;; If you're interested in tweaking things at a system level, have a look at metasoarous/datspec
 
 
 ;; ## The default system
