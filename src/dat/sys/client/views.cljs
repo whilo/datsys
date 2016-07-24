@@ -1,8 +1,7 @@
 (ns dat.sys.client.views
   "# Views"
   (:require [dat.view]
-            [dat.view.forms :as forms]
-            [posh.core :as posh]
+            [posh.reagent :as posh]
             [reagent.core :as r]
             [re-com.core :as re-com]))
 
@@ -55,10 +54,10 @@
 
 (defn type-instance-eids-rx
   [app type-ident]
-  (posh/q (:conn app)
-          '[:find [?e ...]
+  (posh/q '[:find [?e ...]
             :in $ ?type
             :where [?e :e/type ?type]]
+          (:conn app)
           [:db/ident type-ident]))
 
 ;; Now we can put these things together into a Reagent component
@@ -75,8 +74,9 @@
                   ^{:key todo}
                   [:div {:style {:margin "20px 5px"}}
                    ;; Should be using shared reaction here?
-                   [forms/pull-form app (todo-view 1) todo]
-                   [dat.view/pull-view app (todo-view 1) todo]])]]))
+                   [dat.view/pull-form app (todo-view 1) todo]
+                   [dat.view/pull-view app (todo-view 1) todo]
+                   ])]]))
 
 
 ;; ## Main
