@@ -55,10 +55,13 @@
 (defn type-instance-eids-rx
   [app type-ident]
   (posh/q '[:find [?e ...]
-            :in $ ?type
-            :where [?e :e/type ?type]]
+            :in $ ?type-ident
+            :where [?e :e/type ?type]
+                   [?type :db/ident ?type-ident]]
           (:conn app)
-          [:db/ident type-ident]))
+          ;;[:db/ident type-ident]
+            type-ident
+            ))
 
 ;; Now we can put these things together into a Reagent component
 
