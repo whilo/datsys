@@ -30,7 +30,7 @@
                  [testdouble/clojurescript.csv "0.2.0"]
                  [datascript "0.15.0"]
                  [posh "0.5.3.3"]
-                 [data-frisk-reagent "0.2.4"]
+                 [data-frisk-reagent "0.2.5"]
                  [reagent "0.6.0-rc"]
                  [org.webjars/bootstrap "3.3.5"]
                  [re-com "0.8.3"]
