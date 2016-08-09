@@ -1,5 +1,5 @@
 (ns dat.sys.ring-handler
-  (:require [clojure.tools.logging :as log]
+  (:require [taoensso.timbre :as log :include-macros true]
             [com.stuartsierra.component :as component]
             [compojure.core :refer [routes GET POST]]
             [compojure.route :as route]

@@ -1,5 +1,5 @@
 (ns dat.sys.datomic
-  (:require [clojure.tools.logging :as log]
+  (:require [taoensso.timbre :as log :include-macros true]
             [datomic.api :as d]
             [dat.view]
             [clojure.java.io :as io]

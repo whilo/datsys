@@ -1,6 +1,6 @@
 (ns dat.sys.run
   (:gen-class)
-  (:require [clojure.tools.logging :as log]
+  (:require [taoensso.timbre :as log :include-macros true]
             [com.stuartsierra.component :as component]
             [dat.sys.config :as config]
             [dat.sys.system :refer [create-system]]))

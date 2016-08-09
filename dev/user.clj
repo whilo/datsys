@@ -7,7 +7,7 @@
     [com.stuartsierra.component :as component]
     [clojure.tools.namespace.repl :refer [refresh refresh-all]]
     [dat.sys.system :as system]
-    [clojure.tools.logging :as log]
+    [taoensso.timbre :as log :include-macros true]
     [dat.sys.dev.figwheel-server :as fserver]))
 
 (def system nil)

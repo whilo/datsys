@@ -2,7 +2,7 @@
   (:require [dat.sys.datomic :as datomic]
             [dat.sys.ws :as ws]
             [dat.sync.server :as dat.sync]
-            [clojure.tools.logging :as log]
+            [taoensso.timbre :as log :include-macros true]
             [com.stuartsierra.component :as component]
             [slingshot.slingshot :as slingshot :refer [throw+ try+]]
             [taoensso.sente :as sente]
