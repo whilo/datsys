@@ -15,11 +15,10 @@
             [com.stuartsierra.component :as component]
             [posh.core :as posh]))
 
-
 ;; # The system & main function
 
 ;; This is where everything actually ties together and starts.
-;; If you're interested in tweaking things at a system level, have a look at metasoarous/datprotocols
+;; If you're interested in tweaking things at a system level, have a look at metasoarous/datspec
 
 
 ;; ## The default system
@@ -68,7 +67,7 @@
 ;; As long as our abstractions aren't leaking for you...
 ;; (Tell us if they do...)
 
-;; Here's a quick example of what some 
+;; Here's a quick example of what some
 
 ;;     (defn new-system []
 ;;       (-> (component/system-map
@@ -98,5 +97,3 @@
   (log/info "Running main function")
   (when-let [root (.getElementById js/document "app")]
     (r/render-component [views/main (:app system)] root)))
-
-

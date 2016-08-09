@@ -1,8 +1,7 @@
 (ns dat.sys.client.views
   "# Views"
   (:require [dat.view]
-            [dat.view.forms :as forms]
-            [posh.core :as posh]
+            [posh.reagent :as posh]
             [reagent.core :as r]
             [re-com.core :as re-com]))
 
@@ -35,7 +34,7 @@
     :e/tags [:db/id :e/name :e/description]
     :todo/time-entries time-entry}])
 
-;; We could call (dat.view/pull-view conn base-todo-view eid) and get a hiccup view of the 
+;; We could call (dat.view/pull-view conn base-todo-view eid) and get a hiccup view of the
 
 ;; We should just be able to use recursion depth specifications and ...; Posh doesn't allow, so this is just a
 ;; hack for now...
@@ -55,11 +54,14 @@
 
 (defn type-instance-eids-rx
   [app type-ident]
-  (posh/q (:conn app)
-          '[:find [?e ...]
-            :in $ ?type
-            :where [?e :e/type ?type]]
-          [:db/ident type-ident]))
+  (posh/q '[:find [?e ...]
+            :in $ ?type-ident
+            :where [?e :e/type ?type]
+                   [?type :db/ident ?type-ident]]
+          (:conn app)
+          ;;[:db/ident type-ident]
+            type-ident
+            ))
 
 ;; Now we can put these things together into a Reagent component
 
@@ -69,12 +71,15 @@
      :margin "20px 5px 5px"
      :children [[:h2 "Todos"]
                 [:p "Below are forms and views for each todo item in the database:"]
+                [:p "(Unfortunately, these probably won't render properly right away. You have to save a file to get figwheel to force an update. Even then, the styles aren't applying properly. But we're on the trail and should have a fix soon.)"
+                    "Feel free to monitor the" [:a {:href "https://github.com/metasoarous/datsys/issues/15"} "github issue."]]
                 (for [todo todo-eids]
                   ^{:key todo}
                   [:div {:style {:margin "20px 5px"}}
                    ;; Should be using shared reaction here?
-                   [forms/pull-form app (todo-view 1) todo]
-                   [dat.view/pull-view app (todo-view 1) todo]])]]))
+                   [dat.view/pull-form app (todo-view 1) todo]
+                   [dat.view/pull-view app (todo-view 1) todo]
+                   ])]]))
 
 
 ;; ## Main

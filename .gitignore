@@ -10,9 +10,7 @@ pom.xml.asc
 /.nrepl-port
 /resources/public/js/*.js
 /resources/public/js/
-/dev-resources
 profiles.clj
-figwheel_server.log
 config/local/
 data
 # So you can install datomic here
@@ -26,3 +24,5 @@ Session.vim
 *.iml
 .idea/
 checkouts/
+figwheel_server.log
+dev-resources
