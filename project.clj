@@ -75,7 +75,7 @@
                                "checkouts/datreactor/src"
                                "checkouts/datspec/src"
                                ]
-                :figwheel {:on-jsload "dat.sys.start/on-js-reload"}
+                :figwheel {:on-jsload "dat.sys.client.start/on-js-reload"}
 
                 :compiler {:main dat.sys.client.start
                            :asset-path "js/compiled/out"
