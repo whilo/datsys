@@ -1,17 +1,6 @@
 (ns dat.sys.dev.start
-  (:require [dat.sys.client.app :as app]
-            [dat.view :as view]
-            [taoensso.timbre :as log :include-macros true]
-            ))
+  (:require [taoensso.timbre :as log]))
 
-(enable-console-print!)
-
-(defn on-js-reload []
-  (log/info "------ Figwheel Has Reloaded ------")
-  (do
-    ;;(app/main)
-    (view/dispatch! (:app app/system) [:figwheel/reload nil])
-    )
-  )
-
-(app/main)
+(defn on-js-reload
+  [& args]
+  (log/debug "Uhh... not sure what this needs to do yet"))

@@ -1,6 +1,6 @@
 (ns dat.sys.config
   (:require [environ.core :as environ]
-            [clojure.tools.logging :as log]
+            [taoensso.timbre :as log :include-macros true]
             [com.stuartsierra.component :as component]))
 
 (defn ?->int [x]

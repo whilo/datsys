@@ -1,6 +1,5 @@
 (ns dat.sys.shared.routes
-  (:require #?(:clj [clojure.tools.logging :as log]
-               :cljs [taoensso.timbre :as log :include-macros true])
+  (:require [taoensso.timbre :as log :include-macros true]
             [com.stuartsierra.component :as component]
             [bidi.bidi :as bidi]
 

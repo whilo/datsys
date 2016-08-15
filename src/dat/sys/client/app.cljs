@@ -97,8 +97,3 @@
   (log/info "Running main function")
   (when-let [root (.getElementById js/document "app")]
     (r/render-component [views/main (:app system)] root)))
-
-
-;; Only gets called from a production build. See dev/start.cljs during development
-(main)
-

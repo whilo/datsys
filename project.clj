@@ -1,4 +1,4 @@
-(defproject datsys "1.0.0"
+(defproject datsys "0.0.1-alpha1-SNAPSHOT"
   :description "(+ clj cljs datomic datascript frp) web development framework" ;;should this be "an" or "un"?
   :url "https://github.com/metasoarous/datsys"
   :license {:name "Eclipse Public License"
@@ -7,7 +7,7 @@
   :dependencies [[org.clojure/clojure "1.9.0-alpha7"]
                  [org.clojure/clojurescript "1.9.76"]
                  [org.clojure/core.async "0.2.382"]
-                 [org.clojure/tools.logging "0.3.1"] ;; Should remove this for timbre
+;;                  [org.clojure/tools.logging "0.3.1"] ;; Should remove this for timbre
                  [org.clojure/core.match "0.3.0-alpha4"]
                  [org.clojure/core.typed "0.3.23"]
                  ;; Datsys things
@@ -24,23 +24,29 @@
                  [compojure "1.5.0"]
                  [http-kit "2.1.19"]
                  [bidi "2.0.9"]
-                 [com.cognitect/transit-clj "0.8.285" :exclusions [commons-codec]]
-                 [com.cognitect/transit-cljs "0.8.237"]
+                 [com.cognitect/transit-clj "0.8.288" :exclusions [commons-codec]]
+                 [com.cognitect/transit-cljs "0.8.239"]
                  [com.lucasbradstreet/cljs-uuid-utils "1.0.2"]
                  [testdouble/clojurescript.csv "0.2.0"]
                  [datascript "0.15.0"]
                  [posh "0.5.3.3"]
+                 [data-frisk-reagent "0.2.5"]
                  [reagent "0.6.0-rc"]
                  [org.webjars/bootstrap "3.3.5"]
                  [re-com "0.8.3"]
-                 [prismatic/schema "1.1.2"]
+                 [prismatic/schema "1.1.3"]
                  [io.rkn/conformity "0.4.0"]
                  [ch.qos.logback/logback-classic "1.1.7"]
-                 [com.taoensso/timbre "4.4.0"]
-                 [com.taoensso/encore "2.56.0"]
+                 [com.taoensso/timbre "4.7.0"]
+                 [com.taoensso/encore "2.68.1"]
                  [com.taoensso/sente "1.8.1" :exclusions [org.clojure/tools.reader]]
                  ;;For the free version of Datomic
-                 [com.datomic/datomic-free "0.9.5372" :exclusions [joda-time]]]
+                 [com.datomic/datomic-free "0.9.5372" :exclusions [joda-time org.slf4j/slf4j-nop]]
+
+                 ;; libraries to suppress warnings until upstream libraries get sorted with clojure 1.9 alpha
+                 [org.clojure/tools.analyzer "0.6.9"]
+                 [medley "0.8.2"]]
+
   :plugins [[lein-cljsbuild "1.1.1"]]
   ;; For Datomic Pro uncomment the following and set the DATOMIC_USERNAME and DATAOMIC_PASSWORD environment
   ;; variables of the process in which you run this program to those matching your Datomic Pro account. You'll
@@ -64,14 +70,13 @@
               {:client
                {:source-paths ["src/dat/sys/client"
                                "dev"]
+                               ;; Uncomment if you'd like to checkout one of the sources below for dev
                                ;"checkouts/datview/src"
                                ;"checkouts/datsync/src"
                                ;"checkouts/datreactor/src"
                                ;"checkouts/datspec/src"]
-
                 :figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}
-
-                :compiler {:main dat.sys.dev.start
+                :compiler {:main dat.sys.client.start
                            :asset-path "js/compiled/out"
                            :output-to "resources/public/js/compiled/app.js"
                            :output-dir "resources/public/js/compiled/out"
@@ -117,13 +122,15 @@
   :profiles {:dev-config {}
              :dev [:dev-config
                    {:dependencies [[alembic "0.3.2"]
-                                   [figwheel "0.5.4-3"]
-                                   [figwheel-sidecar "0.5.3-2"]
+                                   [figwheel "0.5.5-SNAPSHOT"]
+                                   [figwheel-sidecar "0.5.5-SNAPSHOT"] ;;:exclusions [org.clojure/clojure org.clojure/clojurescript fipp.visit/boolean?]
+
                                    [com.cemerick/piggieback "0.2.1"]
                                    [org.clojure/tools.nrepl "0.2.12"]
                                    [devcards "0.2.1"]]
                     :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
-                    :plugins [[lein-figwheel "0.5.4-3" :exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]]
+                    :plugins [[lein-figwheel "0.5.5-SNAPSHOT"] ;;:exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]
+
                               [com.palletops/lein-shorthand "0.4.0"]
                               [lein-environ "1.0.1"]]
                     ;; The lein-shorthand plugin gives us access to the following shortcuts as `./*` (e.g. `./pprint`)
@@ -139,7 +146,7 @@
              :prod {:cljsbuild
                     {:builds
                      {:client {:source-paths ^:replace ["src/dat/sys/client"]
-                               :compiler {:main dat.sys.client.app
+                               :compiler {;;:main dat.sys.client.start
                                           ;;:source-map false
                                           :optimizations :advanced
                                           :pretty-print false}}}}}
