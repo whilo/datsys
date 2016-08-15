@@ -16,7 +16,7 @@
 {;; ## Catalysis Domain model
  :catalysis/base-schema
  ;; This is how conformity does dependencies (:requires)
- {:requires [:datview/base-schema]
+ {:requires [:dat.view/base-schema]
   :txes
   ;; Hmmm... should we have our own partition for datview?
   [;; ### Domain types;
