@@ -12,7 +12,7 @@
                  [org.clojure/core.typed "0.3.23"]
                  ;; Datsys things
                  [datsync "0.0.1-alpha1-SNAPSHOT"]
-                 [datview "0.0.1-alpha1-SNAPSHOT"]
+                 [datview "0.0.1-alpha2-SNAPSHOT"]
                  [datspec "0.0.1-alpha1-SNAPSHOT"]
                  [datreactor "0.0.1-alpha1-SNAPSHOT"]
                  ;; Other stuff (should try to clean things up once in main project)
@@ -29,7 +29,7 @@
                  [com.lucasbradstreet/cljs-uuid-utils "1.0.2"]
                  [testdouble/clojurescript.csv "0.2.0"]
                  [datascript "0.15.0"]
-                 [posh "0.3.5"]
+                 [posh "0.5.3.3"]
                  [reagent "0.6.0-rc"]
                  [org.webjars/bootstrap "3.3.5"]
                  [re-com "0.8.3"]
@@ -63,11 +63,11 @@
   :cljsbuild {:builds
               {:client
                {:source-paths ["src/dat/sys/client"
-                               "dev"
-                               "checkouts/datview/src"
-                               "checkouts/datsync/src"
-                               "checkouts/datreactor/src"
-                               "checkouts/datspec/src"]
+                               "dev"]
+                               ;"checkouts/datview/src"
+                               ;"checkouts/datsync/src"
+                               ;"checkouts/datreactor/src"
+                               ;"checkouts/datspec/src"]
 
                 :figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}
 

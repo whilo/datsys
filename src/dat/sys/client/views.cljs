@@ -2,7 +2,7 @@
   "# Views"
   (:require [dat.view]
             [dat.view.forms :as forms]
-            [posh.core :as posh]
+            [posh.reagent :as posh]
             [reagent.core :as r]
             [re-com.core :as re-com]))
 
@@ -64,19 +64,20 @@
 ;; Now we can put these things together into a Reagent component
 
 (defn todos-view [app]
-  (let [todo-eids @(type-instance-eids-rx app :e.type/Todo)]
+  ;(let [todo-eids @(type-instance-eids-rx app :e.type/Todo)]
     [re-com/v-box
      :margin "20px 5px 5px"
      :children [[:h2 "Todos"]
                 [:p "Below are forms and views for each todo item in the database:"]
                 [:p "(Unfortunately, these probably won't render properly right away. You have to save a file to get figwheel to force an update. Even then, the styles aren't applying properly. But we're on the trail and should have a fix soon.)"
-                    "Feel free to monitor the" [:a {:href "https://github.com/metasoarous/datsys/issues/15"} "github issue."]]
-                (for [todo todo-eids]
-                  ^{:key todo}
-                  [:div {:style {:margin "20px 5px"}}
-                   ;; Should be using shared reaction here?
-                   [forms/pull-form app (todo-view 1) todo]
-                   [dat.view/pull-view app (todo-view 1) todo]])]]))
+                    "Feel free to monitor the" [:a {:href "https://github.com/metasoarous/datsys/issues/15"} "github issue."]]]])
+                ;(for [todo todo-eids]
+                ;  ^{:key todo}
+                ;  [:div {:style {:margin "20px 5px"}}
+                ;   ;; Should be using shared reaction here?
+                ;   [:p "here for todo " todo]])]])
+                   ;[dat.view/pull-form app (todo-view 1) todo]])]]))
+                   ;[dat.view/pull-view app (todo-view 1) todo]])]]))
 
 
 ;; ## Main

@@ -1,17 +1,8 @@
 
 ;; # SCHEMA!
 
-;; This is wildy incomplete still, and subject to change, but it's something to start looking at with respect
-;; to what I have in mind.
-
-;; I think for now we'll be using conformity (https://github.com/rkneufeld/conformity) to define "norms" about
+;; We'll be using conformity (https://github.com/rkneufeld/conformity) to define "norms" about
 ;; what we expect to see in the shape of the database.
-;; I have a feeling we're going to want to extend this with additional functionality, like :before and :after
-;; hooks, :dependencies, etc.
-;; It would also be nice to have it spit out the current state of the schema as a new :base-schema for
-;; cleanup.
-;; It would also be nice to automatically do diffs on the current schema and the existing schema, and try to
-;; automatically patch things as well.
 
 {;; ## Catalysis Domain model
  :catalysis/base-schema
@@ -70,7 +61,4 @@
      :e.type/_attributes :e.type/TimeEntry
      :db/doc         "Stop time for some time entry"
      :db.install/_attribute :db.part/db}]]}}
-   ;;
-
-;; End of schema
 

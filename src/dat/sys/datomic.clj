@@ -12,7 +12,7 @@
 (defn ensure-schema!
   [conn]
   ;; The schema is in `resources/schema.edn`; Note that we make requirements in that schema about having Datview schema loaded
-  (let [schema-data (merge (-> "datview-schema.edn" io/resource slurp read-string)
+  (let [schema-data (merge dat.view/base-schema
                            (-> "schema.edn" io/resource slurp read-string))]
     ;; This is where ideally we would be looking at a dependency graph of norms and executing in that order.
     ;; Look at Stuart Sierra's dependency library. XXX
