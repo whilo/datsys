@@ -67,8 +67,8 @@
                                "checkouts/datview/src"
                                "checkouts/datsync/src"
                                "checkouts/datreactor/src"
-                               "checkouts/datspec/src"
-                               ]
+                               "checkouts/datspec/src"]
+
                 :figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}
 
                 :compiler {:main dat.sys.dev.start
@@ -76,8 +76,8 @@
                            :output-to "resources/public/js/compiled/app.js"
                            :output-dir "resources/public/js/compiled/out"
                            :optimizations :none
-                           :source-map-timestamp true ;; helps prevent browser caching from interferring with interactive dev
-                           }}}}
+                           :source-map-timestamp true}}}} ;; helps prevent browser caching from interferring with interactive dev
+
                        ;:devcards {:source-paths ["src"]
                                   ;:figwheel {:devcards true}  ;; <- note this
                                   ;:compiler {:main    "dat.sys.client.cards"
@@ -111,8 +111,8 @@
              ;;
              ;; :open-file-command "myfile-opener"
 
-             :server-logfile "logs/figwheel.log"
-              }
+             :server-logfile "logs/figwheel.log"}
+
 
   :profiles {:dev-config {}
              :dev [:dev-config
@@ -142,12 +142,12 @@
                                :compiler {:main dat.sys.client.app
                                           ;;:source-map false
                                           :optimizations :advanced
-                                          :pretty-print false
-                                          }}}}}
+                                          :pretty-print false}}}}}
+
              :uberjar [:prod
                        {:omit-source true
-                        :aot :all}]
-             }
+                        :aot :all}]}
+
   :aliases {"package"
             ["with-profile" "prod" "do"
              "clean" ["cljsbuild" "once"]]

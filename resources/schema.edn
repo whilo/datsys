@@ -69,8 +69,8 @@
      :db/cardinality :db.cardinality/one
      :e.type/_attributes :e.type/TimeEntry
      :db/doc         "Stop time for some time entry"
-     :db.install/_attribute :db.part/db}]
+     :db.install/_attribute :db.part/db}]]}}
    ;;
-   ]}}
+
 ;; End of schema
 
