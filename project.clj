@@ -29,7 +29,7 @@
                  [com.lucasbradstreet/cljs-uuid-utils "1.0.2"]
                  [testdouble/clojurescript.csv "0.2.0"]
                  [datascript "0.15.0"]
-                 [posh "0.5.4"]
+                 [posh "0.5.5"]
                  [data-frisk-reagent "0.3.5"]
                  [reagent "0.6.0"]
                  [org.webjars/bootstrap "3.3.5"]
