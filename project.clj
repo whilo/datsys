@@ -11,8 +11,6 @@
 ;;                  [org.clojure/tools.logging "0.3.1"] ;; Should remove this for timbre
                  [org.clojure/core.match "0.3.0-alpha4"]
                  [org.clojure/core.typed "0.3.23"]
-                 ;; Force versions to fix prod-mode compilation
-                 [cljsjs/react-with-addons "15.4.0-0"]
                  ;; Datsys things
                  [datsync "0.0.1-alpha1-SNAPSHOT"]
                  [datview "0.0.1-alpha2-SNAPSHOT"]
@@ -33,8 +31,8 @@
                  [testdouble/clojurescript.csv "0.2.0"]
                  [datascript "0.15.0"]
                  [posh "0.5.4"]
-                 [data-frisk-reagent "0.2.5"]
-                 [reagent "0.6.0-rc"]
+                 [data-frisk-reagent "0.3.5"]
+                 [reagent "0.6.0"]
                  [org.webjars/bootstrap "3.3.5"]
                  [re-com "0.8.3"]
                  [prismatic/schema "1.1.3"]
