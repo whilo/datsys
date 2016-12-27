@@ -44,7 +44,7 @@
                  [com.taoensso/encore "2.68.1"]
                  [com.taoensso/sente "1.8.1" :exclusions [org.clojure/tools.reader]]
                  ;;For the free version of Datomic
-                 [com.datomic/datomic-free "0.9.5372" :exclusions [joda-time org.slf4j/slf4j-nop]]
+                 [com.datomic/datomic-free "0.9.5372" :exclusions [joda-time org.slf4j/slf4j-nop com.google.guava/guava]]
 
                  ;; libraries to suppress warnings until upstream libraries get sorted with clojure 1.9 alpha
                  [org.clojure/tools.analyzer "0.6.9"]
