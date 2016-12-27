@@ -4,7 +4,6 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :min-lein-version "2.0.0"
-  :exclusions [cljsjs/react]
   :dependencies [[org.clojure/clojure "1.9.0-alpha7"]
                  [org.clojure/clojurescript "1.9.76"]
                  [org.clojure/core.async "0.2.382"]
@@ -20,12 +19,12 @@
                  [com.stuartsierra/component "0.3.1"]
                  [environ "1.0.3"]
                  [slingshot "0.12.2"]
-                 [ring/ring-core "1.5.0"]
+                 [ring/ring-core "1.5.0" :exclusions [commons-codec]]
                  [ring/ring-defaults "0.2.1"]
                  [compojure "1.5.0"]
                  [http-kit "2.1.19"]
                  [bidi "2.0.9"]
-                 [com.cognitect/transit-clj "0.8.288" :exclusions [commons-codec]]
+                 [com.cognitect/transit-clj "0.8.288"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [com.lucasbradstreet/cljs-uuid-utils "1.0.2"]
                  [testdouble/clojurescript.csv "0.2.0"]
@@ -42,7 +41,7 @@
                  [com.taoensso/encore "2.68.1"]
                  [com.taoensso/sente "1.8.1" :exclusions [org.clojure/tools.reader]]
                  ;;For the free version of Datomic
-                 [com.datomic/datomic-free "0.9.5372" :exclusions [joda-time org.slf4j/slf4j-nop com.google.guava/guava]]
+                 [com.datomic/datomic-free "0.9.5372" :exclusions [joda-time org.slf4j/slf4j-nop com.google.guava/guava commons-codec]]
 
                  ;; libraries to suppress warnings until upstream libraries get sorted with clojure 1.9 alpha
                  [org.clojure/tools.analyzer "0.6.9"]
@@ -128,7 +127,8 @@
 
                                    [com.cemerick/piggieback "0.2.1"]
                                    [org.clojure/tools.nrepl "0.2.12"]
-                                   [devcards "0.2.1"]]
+                                   [devcards "0.2.2"]]
+                    :figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}
                     :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
                     :plugins [[lein-figwheel "0.5.5-SNAPSHOT"] ;;:exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]
 
@@ -146,9 +146,13 @@
                     :resource-paths ^:replace ["resources" "libs/datsync/resources"]}]
              :prod {:cljsbuild
                     {:builds
-                     {:client {:source-paths ^:replace ["src/dat/sys/client"]
-                               :compiler {;;:main dat.sys.client.start
-                                          ;;:source-map false
+                     {:client {:source-paths ^:replace ["src/dat/sys/client"] ; no "dev", so no figwheel
+                               :figwheel false
+                               :compiler {:main dat.sys.client.start-prod
+                                          :output-dir "resources/public/js/compiled"
+                                          :output-to "resources/public/js/compiled/app.js"
+                                          :source-map "resources/public/js/compiled/app.js.map"
+                                          :pseudo-names true
                                           :optimizations :advanced
                                           :pretty-print false}}}}}
 
