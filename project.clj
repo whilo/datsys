@@ -152,7 +152,7 @@
                                           :output-dir "resources/public/js/compiled"
                                           :output-to "resources/public/js/compiled/app.js"
                                           :source-map "resources/public/js/compiled/app.js.map"
-                                          :pseudo-names true
+                                          ;:pseudo-names true
                                           :optimizations :advanced
                                           :pretty-print false}}}}}
 
