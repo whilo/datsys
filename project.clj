@@ -76,7 +76,6 @@
                                ;"checkouts/datsync/src"
                                ;"checkouts/datreactor/src"
                                ;"checkouts/datspec/src"]
-                :figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}
                 :compiler {:main dat.sys.client.start
                            :asset-path "js/compiled/out"
                            :output-to "resources/public/js/compiled/app.js"
@@ -129,8 +128,8 @@
                                    [com.cemerick/piggieback "0.2.1"]
                                    [org.clojure/tools.nrepl "0.2.12"]
                                    [devcards "0.2.2" :exclusions [cljsjs/react-dom]]]
-                    :figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}
                     :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
+                    :cljsbuild {:builds {:client {:figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}}}}
                     :plugins [[lein-figwheel "0.5.5-SNAPSHOT"] ;;:exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]
 
                               [com.palletops/lein-shorthand "0.4.0"]
