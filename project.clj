@@ -38,8 +38,8 @@
                  [io.rkn/conformity "0.4.0"]
                  [ch.qos.logback/logback-classic "1.1.7"]
                  [com.taoensso/timbre "4.7.0"]
-                 [com.taoensso/encore "2.68.1"]
-                 [com.taoensso/sente "1.8.1" :exclusions [org.clojure/tools.reader]]
+                 [com.taoensso/encore "2.88.1"]
+                 [com.taoensso/sente "1.11.0" :exclusions [org.clojure/tools.reader]]
                  ;;For the free version of Datomic
                  [com.datomic/datomic-free "0.9.5372" :exclusions [joda-time org.slf4j/slf4j-nop com.google.guava/guava commons-codec]]
 
