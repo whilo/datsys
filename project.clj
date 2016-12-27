@@ -5,11 +5,12 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.9.0-alpha7"]
-                 [org.clojure/clojurescript "1.9.76"]
-                 [org.clojure/core.async "0.2.382"]
+                 [org.clojure/tools.reader "1.0.0-beta3"]
+                 [org.clojure/clojurescript "1.9.229"]
+                 [org.clojure/core.async "0.2.395"]
 ;;                  [org.clojure/tools.logging "0.3.1"] ;; Should remove this for timbre
                  [org.clojure/core.match "0.3.0-alpha4"]
-                 [org.clojure/core.typed "0.3.23"]
+                 [org.clojure/core.typed "0.3.23" :exclusions [org.clojure/core.cache]]
                  ;; Datsys things
                  [datsync "0.0.1-alpha1-SNAPSHOT"]
                  [datview "0.0.1-alpha2-SNAPSHOT"]
@@ -24,7 +25,7 @@
                  [compojure "1.5.0"]
                  [http-kit "2.1.19"]
                  [bidi "2.0.9"]
-                 [com.cognitect/transit-clj "0.8.288"]
+                 [com.cognitect/transit-clj "0.8.290"]
                  [com.cognitect/transit-cljs "0.8.239"]
                  [com.lucasbradstreet/cljs-uuid-utils "1.0.2"]
                  [testdouble/clojurescript.csv "0.2.0"]
@@ -37,7 +38,7 @@
                  [prismatic/schema "1.1.3"]
                  [io.rkn/conformity "0.4.0"]
                  [ch.qos.logback/logback-classic "1.1.7"]
-                 [com.taoensso/timbre "4.7.0"]
+                 [com.taoensso/timbre "4.7.4"]
                  [com.taoensso/encore "2.88.1"]
                  [com.taoensso/sente "1.11.0" :exclusions [org.clojure/tools.reader]]
                  ;;For the free version of Datomic
@@ -47,7 +48,7 @@
                  [org.clojure/tools.analyzer "0.6.9"]
                  [medley "0.8.2"]]
 
-  :plugins [[lein-cljsbuild "1.1.1"]]
+  :plugins [[lein-cljsbuild "1.1.1" :exclusions [org.clojure/clojure]]]
   ;; For Datomic Pro uncomment the following and set the DATOMIC_USERNAME and DATAOMIC_PASSWORD environment
   ;; variables of the process in which you run this program to those matching your Datomic Pro account. You'll
   ;; have to start your own transactor separately from this process as well. More instructions on how to do
@@ -127,7 +128,7 @@
 
                                    [com.cemerick/piggieback "0.2.1"]
                                    [org.clojure/tools.nrepl "0.2.12"]
-                                   [devcards "0.2.2"]]
+                                   [devcards "0.2.2" :exclusions [cljsjs/react-dom]]]
                     :figwheel {:on-jsload "dat.sys.dev.start/on-js-reload"}
                     :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
                     :plugins [[lein-figwheel "0.5.5-SNAPSHOT"] ;;:exclusions [org.clojure/clojure org.clojure/clojurescript org.codehaus.plexus/plexus-utils]
