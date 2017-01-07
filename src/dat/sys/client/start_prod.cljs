@@ -1,4 +1,4 @@
-(ns dat.sys.client.start
+(ns dat.sys.client.start-prod
   (:require [dat.sys.client.app :as app]
             [dat.view :as view]
             [taoensso.timbre :as log :include-macros true]
