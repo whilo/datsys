@@ -25,7 +25,7 @@
         (assoc component :figwheel-system nil)))
 
 (defn browser-repl [fig-server]
-  (figwheel/cljs-repl (:figwheel-system fig-server) nil))
+  (figwheel/cljs-repl (:figwheel-system (:figwheel-system fig-server)) nil))
 
 (defn new-figwheel-server []
   (map->FigwheelServer {}))

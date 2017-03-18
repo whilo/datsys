@@ -52,8 +52,9 @@
 (defn bootstrap
   [db]
   ;; This could be a lot more perfomant; And should probably be generally smarter
-  (let [eids (distinct (map (fn [[e a v t]] e) (d/datoms db :eavt)))]
-    (d/pull-many db '[*] eids)))
-
-
-
+  (log/info "Calculating bootstrap data...")
+  (->> (d/datoms db :eavt)
+       (map (fn [[e a v t]] e))
+       (distinct)
+       (d/pull-many db '[*])
+       (filter #(not (:db/fn %)))))

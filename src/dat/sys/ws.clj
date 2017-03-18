@@ -17,7 +17,7 @@
     (if (and ch-recv connected-uids send-fn ring-handlers)
       component
       (let [component (component/stop component)
-            packer (sente-transit/get-flexi-packer :edn)
+            packer (sente-transit/get-transit-packer)
             {:keys [ch-recv send-fn connected-uids
                     ajax-post-fn ajax-get-or-ws-handshake-fn]}
             (sente/make-channel-socket! sente-http/http-kit-adapter {:packer packer})]
